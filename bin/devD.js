@@ -414,14 +414,24 @@ async function runSelfUpdate(toLatestCommit = false) {
 
   console.log(colors.info(`Running: ${cmd} ${args.join(' ')}`));
   
-  const child = spawn(cmd, args, { stdio: 'inherit' });
-  
-  child.on('close', (code) => {
-    if (code === 0) {
-      console.log(colors.success('✔ devD has been updated successfully!'));
-    } else {
-      console.log(colors.error(`✖ Update failed with exit code ${code}.`));
-    }
+  return new Promise((resolve) => {
+    const child = spawn(cmd, args, { stdio: 'inherit' });
+    
+    child.on('close', (code) => {
+      if (code === 0) {
+        console.log(colors.success('✔ devD has been updated successfully! Please restart devD to use the new version.'));
+        // Ensure the cursor is visible and raw mode is disabled/paused before exiting
+        process.stdout.write('\u001B[?25h');
+        if (process.stdin.isTTY) {
+          process.stdin.setRawMode(false);
+          process.stdin.pause();
+        }
+        process.exit(0);
+      } else {
+        console.log(colors.error(`✖ Update failed with exit code ${code}.`));
+        resolve();
+      }
+    });
   });
 }
 
