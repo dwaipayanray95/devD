@@ -9,10 +9,12 @@ import { promisify } from 'util';
 import { readFileSync } from 'fs';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
+import { createRequire } from 'module';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 const pkg = JSON.parse(readFileSync(join(__dirname, '../package.json'), 'utf8'));
+const require = createRequire(import.meta.url);
 
 import { 
   isGitRepository, 
@@ -45,15 +47,25 @@ const program = new Command();
  */
 function runBumper(type) {
   return new Promise((resolve) => {
-    const args = ['bump-version'];
+    let bumpScriptPath;
+    try {
+      // Resolve the script file location inside the internally installed bump-version dependency
+      bumpScriptPath = require.resolve('bump-version/bin/bump.js');
+    } catch (e) {
+      console.log(colors.error('Error: bump-version package not found internally inside devD.'));
+      resolve();
+      return;
+    }
+
+    const args = [bumpScriptPath];
     if (type && type !== 'interactive') {
       args.push(type.trim().toLowerCase());
     }
     
-    console.log(colors.info(`\nRunning bump-version CLI...`));
+    console.log(colors.info(`\nRunning internal bump-version CLI...`));
     
-    // Spawn npx to execute the package, inheriting stdio for full interactivity
-    const child = spawn('npx', args, { stdio: 'inherit' });
+    // Execute directly using Node.js pointing to the internal dependency file (completely offline)
+    const child = spawn('node', args, { stdio: 'inherit' });
     
     child.on('close', (code) => {
       if (code === 0) {
