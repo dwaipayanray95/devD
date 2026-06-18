@@ -71,6 +71,14 @@ function runBumper(type) {
 
     const child = crossSpawn(cmd, args, { stdio: 'inherit' });
     
+    child.on('error', (err) => {
+      if (process.stdin.isTTY) {
+        process.stdin.resume();
+      }
+      console.log(colors.error(`\n✖ Failed to start version bumper: ${err.message}`));
+      resolve('failed');
+    });
+    
     child.on('close', (code) => {
       if (process.stdin.isTTY) {
         process.stdin.resume();
@@ -185,6 +193,13 @@ async function handleMenuAction(action) {
         
         await new Promise((resolve) => {
           const child = crossSpawn(p.runCommand, p.runArgs, { stdio: 'inherit' });
+          child.on('error', (err) => {
+            if (process.stdin.isTTY) {
+              process.stdin.resume();
+            }
+            console.log(colors.error(`\n✖ Failed to start process: ${err.message}`));
+            resolve();
+          });
           child.on('close', (code) => {
             if (process.stdin.isTTY) {
               process.stdin.resume();
@@ -216,6 +231,13 @@ async function handleMenuAction(action) {
         
         await new Promise((resolve) => {
           const child = crossSpawn(p.buildCommand, p.buildArgs, { stdio: 'inherit' });
+          child.on('error', (err) => {
+            if (process.stdin.isTTY) {
+              process.stdin.resume();
+            }
+            console.log(colors.error(`\n✖ Failed to start build process: ${err.message}`));
+            resolve();
+          });
           child.on('close', (code) => {
             if (process.stdin.isTTY) {
               process.stdin.resume();

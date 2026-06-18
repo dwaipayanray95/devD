@@ -7,9 +7,7 @@ const execAsync = promisify(exec);
 
 export function crossSpawn(cmd, args, options = {}) {
   if (process.platform === 'win32') {
-    if (cmd === 'npm' || cmd === 'npx') {
-      return spawn(`${cmd}.cmd`, args, options);
-    }
+    return spawn(cmd, args, { ...options, shell: true });
   }
   return spawn(cmd, args, options);
 }
@@ -63,6 +61,14 @@ export async function runSelfUpdate(toLatestCommit = false) {
       process.stdin.pause();
     }
     const child = crossSpawn(cmd, args, { stdio: 'inherit' });
+    
+    child.on('error', (err) => {
+      if (process.stdin.isTTY) {
+        process.stdin.resume();
+      }
+      console.log(colors.error(`\n✖ Failed to run update command: ${err.message}`));
+      resolve();
+    });
     
     child.on('close', (code) => {
       if (process.stdin.isTTY) {
