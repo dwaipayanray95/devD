@@ -3,11 +3,8 @@ import { colors, printBanner } from './ui.js';
 
 export async function showInteractiveMenu(gitActive) {
   const items = gitActive ? [
-    { name: '📊 Show Repo Status Dashboard', value: 'status' },
     { name: '✍️  Stage & Commit Wizard (Conventional)', value: 'commit' },
-    { name: '🔄 Sync Repo (Pull & Push)', value: 'sync' },
-    { name: '📥 Stash Current Changes', value: 'stash' },
-    { name: '📤 Pop Last Stash', value: 'stash-pop' },
+    { name: '⚙️  Git Controls', value: 'git-controls' },
     { name: '🚀 Bump Version', value: 'bump' },
     { name: '🤖 Ask Gemini / AI Query', value: 'ai' },
     { name: '✨ Update devD CLI', value: 'update' },

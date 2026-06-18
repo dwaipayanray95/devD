@@ -106,9 +106,42 @@ async function ensureGitRepo() {
   return false;
 }
 
+async function showGitControlsMenu() {
+  printBanner();
+  console.log(colors.accent('⚙️  GIT CONTROLS MENU\n'));
+  
+  const answer = await inquirer.prompt([
+    {
+      type: 'list',
+      name: 'action',
+      message: 'Select Git action:',
+      choices: [
+        { name: '📊 Show Repo Status Dashboard', value: 'status' },
+        { name: '🔄 Sync Repo (Pull & Push)', value: 'sync' },
+        { name: '📥 Stash Current Changes', value: 'stash' },
+        { name: '📤 Pop Last Stash', value: 'stash-pop' },
+        { name: '↩ Back to main menu', value: 'back' }
+      ],
+      loop: false,
+      pageSize: process.stdout.rows ? Math.max(10, process.stdout.rows - 10) : 15
+    }
+  ]);
+
+  if (answer.action === 'back') {
+    await runMenuLoop();
+    return;
+  }
+  
+  await handleMenuAction(answer.action);
+}
+
 async function handleMenuAction(action) {
   console.clear();
   switch (action) {
+    case 'git-controls':
+      await showGitControlsMenu();
+      break;
+
     case 'help':
       await showHelpMenu();
       break;
