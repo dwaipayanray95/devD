@@ -44,24 +44,16 @@ const program = new Command();
 
 function runBumper(type) {
   return new Promise((resolve) => {
-    let bumpScriptPath;
-    try {
-      bumpScriptPath = require.resolve('bump-version/bin/bump.js');
-    } catch (e) {
-      console.log(colors.error('Error: bump-version package not found internally inside devD.'));
-      resolve();
-      return;
-    }
-
-    const args = [bumpScriptPath];
+    const cmd = 'npx';
+    const args = ['--yes', '-p', 'github:dwaipayanray95/bump-version', 'bump-version'];
     if (type && type !== 'interactive') {
       args.push(type.trim().toLowerCase());
     }
     
-    console.log(colors.info(`\nRunning internal bump-version CLI...`));
+    console.log(colors.info(`\nRunning bump-version CLI from GitHub...`));
     
-    // Execute directly using Node.js pointing to the internal dependency file (completely offline & preserves TTY scrolling)
-    const child = spawn('node', args, { stdio: 'inherit' });
+    // Execute using npx to always fetch the latest commit directly from GitHub dynamically
+    const child = spawn(cmd, args, { stdio: 'inherit' });
     
     child.on('close', (code) => {
       if (code === 0) {
@@ -75,20 +67,6 @@ function runBumper(type) {
       }
     });
   });
-}
-
-/**
- * Synchronously checks/downloads the latest bump-version commit from GitHub before launching UI.
- */
-async function syncBumpVersion() {
-  const spinner = ora(colors.primary('Checking and updating bump-version tool from GitHub...')).start();
-  try {
-    const pkgDir = join(__dirname, '../');
-    await execAsync('npm install --no-audit --no-fund github:dwaipayanray95/bump-version', { cwd: pkgDir });
-    spinner.succeed(colors.success('✔ bump-version is up to date with the latest commit!'));
-  } catch (error) {
-    spinner.warn(colors.warning('⚠ Failed to sync bump-version (offline or permission issue). Running cached local copy.'));
-  }
 }
 
 /**
@@ -459,7 +437,6 @@ program
 program
   .action(async () => {
     if (process.argv.slice(2).length === 0) {
-      await syncBumpVersion();
       await runMenuLoop();
     }
   });
@@ -469,7 +446,6 @@ program
   .alias('b')
   .description('Bump package version using bump-version (types: major, minor, patch, interactive)')
   .action(async (type) => {
-    await syncBumpVersion();
     await runBumper(type);
   });
 
