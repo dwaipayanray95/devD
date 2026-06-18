@@ -59,9 +59,15 @@ export async function runSelfUpdate(toLatestCommit = false) {
   console.log(colors.info(`Running: ${cmd} ${args.join(' ')}`));
   
   return new Promise((resolve) => {
+    if (process.stdin.isTTY) {
+      process.stdin.pause();
+    }
     const child = crossSpawn(cmd, args, { stdio: 'inherit' });
     
     child.on('close', (code) => {
+      if (process.stdin.isTTY) {
+        process.stdin.resume();
+      }
       if (code === 0) {
         console.log(colors.success('✔ devD has been updated successfully! Please restart devD to use the new version.'));
         process.stdout.write('\u001B[?25h');

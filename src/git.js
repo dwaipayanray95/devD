@@ -108,8 +108,14 @@ export async function unstageFiles(files) {
  */
 export async function commit(message) {
   return new Promise((resolve) => {
+    if (process.stdin.isTTY) {
+      process.stdin.pause();
+    }
     const child = spawn('git', ['commit', '-m', message], { stdio: 'inherit' });
     child.on('close', (code) => {
+      if (process.stdin.isTTY) {
+        process.stdin.resume();
+      }
       if (code === 0) {
         resolve({ success: true, stdout: 'Commit created successfully' });
       } else {
