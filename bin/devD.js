@@ -264,25 +264,7 @@ async function runMenuLoop() {
     
     case 'bump': {
       try {
-        const bumpAnswer = await promptWithEscape([
-          {
-            type: 'list',
-            name: 'type',
-            message: 'Select version bump type:',
-            choices: [
-              { name: 'Launch Full bump-version Interactive Wizard', value: 'interactive' },
-              { name: 'patch:  Bug fixes (e.g. 1.0.0 -> 1.0.1)', value: 'patch' },
-              { name: 'minor:  New features (e.g. 1.0.0 -> 1.1.0)', value: 'minor' },
-              { name: 'major:  Breaking changes (e.g. 1.0.0 -> 2.0.0)', value: 'major' },
-              { name: '↩ Back to main menu', value: 'back' }
-            ],
-            loop: false
-          }
-        ]);
-        if (bumpAnswer.type === 'back') {
-          break;
-        }
-        await runBumper(bumpAnswer.type);
+        await runBumper();
       } catch (e) {
         if (e.message !== 'ESCAPE_CANCELLED') throw e;
         console.log(colors.info('\nBumping cancelled.'));
@@ -519,25 +501,7 @@ program
   .alias('b')
   .description('Bump package version using bump-version (types: major, minor, patch, interactive)')
   .action(async (type) => {
-    if (!type) {
-      const bumpAnswer = await promptWithEscape([
-        {
-          type: 'list',
-          name: 'type',
-          message: 'Select version bump type:',
-          choices: [
-            { name: 'interactive', value: 'interactive' },
-            { name: 'patch', value: 'patch' },
-            { name: 'minor', value: 'minor' },
-            { name: 'major', value: 'major' }
-          ],
-          loop: false
-        }
-      ]);
-      await runBumper(bumpAnswer.type);
-    } else {
-      await runBumper(type);
-    }
+    await runBumper(type);
   });
 
 program
