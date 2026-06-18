@@ -258,6 +258,14 @@ export async function runCommitWizard() {
     console.log(colors.success('All changes are already staged.'));
   }
 
+  // Ensure there are actually staged files before writing commit message
+  const activeChanges = await getChangedFiles();
+  const currentStaged = activeChanges.filter(f => f.state === 'staged');
+  if (currentStaged.length === 0) {
+    console.log(colors.error('\n✖ Error: No changes are staged. Please stage files before committing.'));
+    return;
+  }
+
   // 3. Prompt for Commit Message or AI generation
   const commitOptionsAnswer = await promptWithEscape([
     {
