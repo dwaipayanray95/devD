@@ -18,7 +18,7 @@ export GEMINI_API_KEY="your-api-key"
 
 ## Technical Details
 
-The integration is implemented under `src/ui.js` in the `askGemini()` function using the native `fetch` API to avoid heavy SDK dependencies.
+The Gemini client is implemented under `src/ui.js` in the `askGemini()` function using the native `fetch` API to avoid heavy SDK dependencies. The AI Conventional Commit wizard triggers this call from `src/gitControl.js`.
 
 * **API Version**: `v1beta`
 * **Model Used**: `gemini-2.5-flash`

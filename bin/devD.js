@@ -23,9 +23,6 @@ import {
 } from '../src/git.js';
 import { 
   printBanner, 
-  showDashboard, 
-  runCommitWizard, 
-  handleGitError, 
   askGemini, 
   colors,
   checkForUpdates,
@@ -35,7 +32,13 @@ import { parseCommand, showHelpMenu } from '../src/commands.js';
 import { navigateDirectories } from '../src/navigator.js';
 import { showInteractiveMenu } from '../src/menu.js';
 import { runSelfUpdate, crossSpawn } from '../src/updater.js';
-import { manageBranches } from '../src/branches.js';
+import { 
+  showDashboard, 
+  runCommitWizard, 
+  handleGitError, 
+  manageBranches, 
+  showGitControlsMenu 
+} from '../src/gitControl.js';
 import { detectPlatform } from '../src/detector.js';
 
 const program = new Command();
@@ -108,37 +111,6 @@ async function ensureGitRepo() {
   return false;
 }
 
-async function showGitControlsMenu() {
-  printBanner();
-  console.log(colors.accent('⚙️  GIT CONTROLS MENU\n'));
-  
-  const answer = await inquirer.prompt([
-    {
-      type: 'list',
-      name: 'action',
-      message: 'Select Git action:',
-      choices: [
-        { name: '✍️  Stage & Commit Wizard (Conventional)', value: 'commit' },
-        { name: '🌿 Git Branch Manager', value: 'branch-manager' },
-        { name: '📊 Show Repo Status Dashboard', value: 'status' },
-        { name: '🔄 Sync Repo (Pull & Push)', value: 'sync' },
-        { name: '📥 Stash Current Changes', value: 'stash' },
-        { name: '📤 Pop Last Stash', value: 'stash-pop' },
-        { name: '↩ Back to main menu', value: 'back' }
-      ],
-      loop: false,
-      pageSize: process.stdout.rows ? Math.max(10, process.stdout.rows - 10) : 15
-    }
-  ]);
-
-  if (answer.action === 'back') {
-    await runMenuLoop();
-    return;
-  }
-  
-  await handleMenuAction(answer.action);
-}
-
 async function showSettingsMenu() {
   printBanner();
   console.log(colors.accent('🛠  SETTINGS MENU\n'));
@@ -174,9 +146,13 @@ async function handleMenuAction(action) {
       await showSettingsMenu();
       break;
 
-    case 'git-controls':
-      await showGitControlsMenu();
+    case 'git-controls': {
+      const res = await showGitControlsMenu(handleMenuAction);
+      if (res === 'back') {
+        await runMenuLoop();
+      }
       break;
+    }
 
     case 'branch-manager':
       await manageBranches();
