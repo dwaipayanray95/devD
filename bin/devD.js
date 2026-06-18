@@ -66,15 +66,16 @@ function runBumper(type) {
     child.on('close', (code) => {
       if (code === 0) {
         console.log(colors.success('\n✔ Version bump completed successfully!'));
+        // Start a silent background update of bump-version only AFTER a successful interactive session has closed
+        const pkgDir = join(__dirname, '../');
+        exec('npm install --no-audit --no-fund github:dwaipayanray95/bump-version', { cwd: pkgDir }, () => {});
+        resolve('success');
+      } else if (code === 2) {
+        resolve('exit');
       } else {
         console.log(colors.error(`\n✖ Version bump process exited with code ${code}.`));
+        resolve('failed');
       }
-      
-      // Start a silent background update of bump-version only AFTER the interactive session has closed
-      const pkgDir = join(__dirname, '../');
-      exec('npm install --no-audit --no-fund github:dwaipayanray95/bump-version', { cwd: pkgDir }, () => {});
-
-      resolve();
     });
   });
 }
@@ -274,7 +275,11 @@ async function runMenuLoop() {
     
     case 'bump': {
       try {
-        await runBumper();
+        const res = await runBumper();
+        if (res === 'exit') {
+          await runMenuLoop();
+          return;
+        }
       } catch (e) {
         if (e.message !== 'ESCAPE_CANCELLED') throw e;
         console.log(colors.info('\nBumping cancelled.'));
