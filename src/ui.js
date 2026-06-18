@@ -185,9 +185,10 @@ export async function showDashboard() {
  * Runs the Conventional Commit Wizard.
  */
 export async function runCommitWizard() {
-  printBanner();
-  
-  // 1. Get changed files
+  try {
+    printBanner();
+    
+    // 1. Get changed files
   const changedFiles = await getChangedFiles();
   if (changedFiles.length === 0) {
     console.log(colors.warning('No changes detected in working tree.'));
@@ -206,7 +207,7 @@ export async function runCommitWizard() {
       checked: false
     }));
 
-    const stageAnswer = await inquirer.prompt([
+    const stageAnswer = await promptWithEscape([
       {
         type: 'checkbox',
         name: 'filesToStage',
@@ -222,7 +223,7 @@ export async function runCommitWizard() {
       spinner.succeed(colors.success(`Staged ${stageAnswer.filesToStage.length} file(s).`));
     } else if (stagedFiles.length === 0) {
       // Nothing staged yet, ask if they want to stage all
-      const stageAllAnswer = await inquirer.prompt([
+      const stageAllAnswer = await promptWithEscape([
         {
           type: 'confirm',
           name: 'stageAll',
@@ -244,7 +245,7 @@ export async function runCommitWizard() {
   }
 
   // 3. Prompt for Commit Message or AI generation
-  const commitOptionsAnswer = await inquirer.prompt([
+  const commitOptionsAnswer = await promptWithEscape([
     {
       type: 'list',
       name: 'method',
@@ -298,7 +299,7 @@ ${diffContent}`;
           console.log(colors.bright(`   "${suggestion}"`));
           console.log();
 
-          const approvalAnswer = await inquirer.prompt([
+          const approvalAnswer = await promptWithEscape([
             {
               type: 'list',
               name: 'action',
@@ -315,7 +316,7 @@ ${diffContent}`;
           if (approvalAnswer.action === 'use') {
             commitMessage = suggestion;
           } else if (approvalAnswer.action === 'edit') {
-            const editAnswer = await inquirer.prompt([
+            const editAnswer = await promptWithEscape([
               {
                 type: 'input',
                 name: 'message',
@@ -337,7 +338,7 @@ ${diffContent}`;
   }
 
   if (commitOptionsAnswer.method === 'manual') {
-    const manualAnswers = await inquirer.prompt([
+    const manualAnswers = await promptWithEscape([
       {
         type: 'list',
         name: 'type',
@@ -383,7 +384,7 @@ ${diffContent}`;
     console.log(colors.success(`\n✔ Commit created successfully: "${commitMessage}"`));
     
     // 5. Ask to push
-    const pushAnswer = await inquirer.prompt([
+    const pushAnswer = await promptWithEscape([
       {
         type: 'confirm',
         name: 'push',
@@ -409,6 +410,13 @@ ${diffContent}`;
     console.log(colors.error('\n✖ Commit failed:'));
     console.log(colors.warning(commitRes.stderr || commitRes.error));
     await handleGitError(commitRes);
+  }
+  } catch (error) {
+    if (error.message === 'ESCAPE_CANCELLED') {
+      console.log(colors.info('\nAction cancelled. Returning to main menu...'));
+      return;
+    }
+    throw error;
   }
 }
 
@@ -446,7 +454,7 @@ export async function handleGitError(res) {
   console.log(`   Details:    ${colors.muted(errorText.substring(0, 300))}`);
   console.log();
 
-  const recoveryAnswer = await inquirer.prompt([
+  const recoveryAnswer = await promptWithEscape([
     {
       type: 'list',
       name: 'action',
@@ -542,5 +550,43 @@ export async function checkForUpdates(localVersion) {
     console.log(colors.info(`   Run: devD update`));
     console.log();
   }
+}
+
+/**
+ * Wraps Inquirer prompts and rejects the promise if the user presses the Escape key.
+ * @param {Array|Object} questions 
+ * @returns {Promise<any>}
+ */
+export function promptWithEscape(questions) {
+  let ui;
+  let onCancel;
+  
+  const cancelPromise = new Promise((_, reject) => {
+    onCancel = () => reject(new Error('ESCAPE_CANCELLED'));
+  });
+
+  const keypressHandler = (_, key) => {
+    if (key && (key.name === 'escape' || key.name === 'esc')) {
+      if (ui) {
+        ui.close();
+      }
+      onCancel();
+    }
+  };
+
+  process.stdin.on('keypress', keypressHandler);
+
+  const promptPromise = inquirer.prompt(questions);
+  ui = promptPromise.ui;
+
+  return Promise.race([promptPromise, cancelPromise])
+    .then(answers => {
+      process.stdin.removeListener('keypress', keypressHandler);
+      return answers;
+    })
+    .catch(err => {
+      process.stdin.removeListener('keypress', keypressHandler);
+      throw err;
+    });
 }
 
