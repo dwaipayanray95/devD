@@ -382,11 +382,20 @@ ${diffContent}`;
         name: 'subject',
         message: 'Write a short description of the changes (imperative, lower-case):',
         validate: val => val.trim().length > 0 ? true : 'Subject is required.'
+      },
+      {
+        type: 'input',
+        name: 'body',
+        message: 'Provide a longer description of the changes (optional, press Enter to skip):',
+        filter: val => val.trim()
       }
     ]);
 
     const scopeStr = manualAnswers.scope ? `(${manualAnswers.scope})` : '';
     commitMessage = `${manualAnswers.type}${scopeStr}: ${manualAnswers.subject}`;
+    if (manualAnswers.body) {
+      commitMessage += `\n\n${manualAnswers.body}`;
+    }
   }
 
   // 4. Exec Commit
