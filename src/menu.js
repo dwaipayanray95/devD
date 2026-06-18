@@ -3,19 +3,14 @@ import { colors, printBanner } from './ui.js';
 
 export async function showInteractiveMenu(gitActive) {
   const items = gitActive ? [
-    { name: '✍️  Stage & Commit Wizard (Conventional)', value: 'commit' },
     { name: '⚙️  Git Controls', value: 'git-controls' },
     { name: '🚀 Bump Version', value: 'bump' },
     { name: '🤖 Ask Gemini / AI Query', value: 'ai' },
-    { name: '✨ Update devD CLI', value: 'update' },
-    { name: 'ℹ️  Help & Commands', value: 'help' },
-    { name: '🔁 Restart devD CLI', value: 'restart' },
+    { name: '🛠 Settings', value: 'settings' },
     { name: '❌ Exit', value: 'exit' }
   ] : [
     { name: '🤖 Ask Gemini / AI Query', value: 'ai' },
-    { name: '✨ Update devD CLI', value: 'update' },
-    { name: 'ℹ️  Help & Commands', value: 'help' },
-    { name: '🔁 Restart devD CLI', value: 'restart' },
+    { name: '🛠 Settings', value: 'settings' },
     { name: '❌ Exit', value: 'exit' }
   ];
 
