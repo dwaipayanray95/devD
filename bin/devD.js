@@ -44,24 +44,16 @@ const program = new Command();
 
 function runBumper(type) {
   return new Promise((resolve) => {
-    let bumpScriptPath;
-    try {
-      bumpScriptPath = require.resolve('bump-version/bin/bump.js');
-    } catch (e) {
-      console.log(colors.error('Error: bump-version package not found internally inside devD.'));
-      resolve();
-      return;
-    }
-
-    const args = [bumpScriptPath];
+    const cmd = 'npx';
+    const args = ['--yes', '-p', 'github:dwaipayanray95/bump-version', 'bump-version'];
     if (type && type !== 'interactive') {
       args.push(type.trim().toLowerCase());
     }
     
-    console.log(colors.info(`\nRunning internal bump-version CLI...`));
+    console.log(colors.info(`\nRunning bump-version CLI from GitHub...`));
     
-    // Execute directly using Node.js pointing to the internal dependency file (completely offline & instant start)
-    const child = spawn('node', args, { stdio: 'inherit' });
+    // Execute using npx to always fetch the latest commit directly from GitHub dynamically (avoids local resolution issues)
+    const child = spawn(cmd, args, { stdio: 'inherit' });
     
     child.on('close', (code) => {
       if (code === 0) {
@@ -124,10 +116,6 @@ async function ensureGitRepo() {
  * Main interactive console menu loop.
  */
 async function runMenuLoop() {
-  // Silent background update of bump-version dependency so it stays fresh
-  const pkgDir = join(__dirname, '../');
-  exec('npm install --no-audit --no-fund github:dwaipayanray95/bump-version', { cwd: pkgDir }, () => {});
-
   printBanner();
   await checkForUpdates(getLocalVersion());
   
