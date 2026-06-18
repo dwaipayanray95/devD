@@ -66,9 +66,6 @@ function runBumper(type) {
     child.on('close', (code) => {
       if (code === 0) {
         console.log(colors.success('\n✔ Version bump completed successfully!'));
-        // Start a silent background update of bump-version only AFTER a successful interactive session has closed
-        const pkgDir = join(__dirname, '../');
-        exec('npm install --no-audit --no-fund github:dwaipayanray95/bump-version', { cwd: pkgDir }, () => {});
         resolve('success');
       } else if (code === 2) {
         resolve('exit');
@@ -78,6 +75,20 @@ function runBumper(type) {
       }
     });
   });
+}
+
+/**
+ * Synchronously checks/downloads the latest bump-version commit from GitHub before launching UI.
+ */
+async function syncBumpVersion() {
+  const spinner = ora(colors.primary('Checking and updating bump-version tool from GitHub...')).start();
+  try {
+    const pkgDir = join(__dirname, '../');
+    await execAsync('npm install --no-audit --no-fund github:dwaipayanray95/bump-version', { cwd: pkgDir });
+    spinner.succeed(colors.success('✔ bump-version is up to date with the latest commit!'));
+  } catch (error) {
+    spinner.warn(colors.warning('⚠ Failed to sync bump-version (offline or permission issue). Running cached local copy.'));
+  }
 }
 
 /**
@@ -448,8 +459,18 @@ program
 program
   .action(async () => {
     if (process.argv.slice(2).length === 0) {
+      await syncBumpVersion();
       await runMenuLoop();
     }
+  });
+
+program
+  .command('bump [type]')
+  .alias('b')
+  .description('Bump package version using bump-version (types: major, minor, patch, interactive)')
+  .action(async (type) => {
+    await syncBumpVersion();
+    await runBumper(type);
   });
 
 program
@@ -511,13 +532,7 @@ program
     console.log(colors.success('✔ Repository synchronized successfully.'));
   });
 
-program
-  .command('bump [type]')
-  .alias('b')
-  .description('Bump package version using bump-version (types: major, minor, patch, interactive)')
-  .action(async (type) => {
-    await runBumper(type);
-  });
+
 
 program
   .command('update')
