@@ -432,9 +432,6 @@ async function showInteractiveMenu(gitActive) {
   
   const renderUI = (buffer, sIndex) => {
     printBanner();
-    console.log(colors.accent('⌨️  COMMAND / SHORTCUT'));
-    console.log(`   devD > ${colors.bright(buffer)}${colors.muted('_')}`);
-    console.log();
     console.log(colors.accent('📋  SELECTABLE MENU'));
     items.forEach((item, idx) => {
       if (idx === sIndex) {
@@ -443,6 +440,9 @@ async function showInteractiveMenu(gitActive) {
         console.log(`     ${colors.muted(item.name)}`);
       }
     });
+    console.log();
+    console.log(colors.accent('⌨️  COMMAND / SHORTCUT'));
+    console.log(`   devD > ${colors.bright(buffer)}${colors.muted('_')}`);
     console.log();
     console.log(colors.muted('   [Arrows] Navigate menu  |  [Type] Custom command / dir path  |  [Enter] Confirm'));
   };
@@ -524,6 +524,16 @@ async function runMenuLoop() {
         console.log(colors.error(`\n✖ Path does not exist: ${targetPath}\n`));
         await pressEnterToContinue();
       }
+      await runMenuLoop();
+      return;
+    } else if (cmdInput.toLowerCase() === 'update' || cmdInput.toLowerCase() === 'u') {
+      await runSelfUpdate(false);
+      await pressEnterToContinue();
+      await runMenuLoop();
+      return;
+    } else if (cmdInput.toLowerCase() === 'update --latest') {
+      await runSelfUpdate(true);
+      await pressEnterToContinue();
       await runMenuLoop();
       return;
     }
