@@ -40,26 +40,30 @@ const execAsync = promisify(exec);
 const program = new Command();
 
 /**
- * Runs the version bump utility using the user's bump-version project.
- * @param {string} type - major, minor, or patch
+ * Runs the version bump utility using your bump-version project.
+ * @param {string} [type] - major, minor, patch, or empty for interactive
  */
-async function runBumper(type) {
-  const cleanType = type.trim().toLowerCase();
-  if (!['major', 'minor', 'patch'].includes(cleanType)) {
-    console.log(colors.error(`Invalid bump type "${type}". Please use "major", "minor", or "patch".`));
-    return;
-  }
-
-  const spinner = ora(colors.primary(`Executing bump-version (${cleanType})...`)).start();
-  try {
-    const { stdout, stderr } = await execAsync(`npx bump-version ${cleanType}`);
-    spinner.succeed(colors.success('Version bump completed!'));
-    if (stdout) console.log(colors.muted(stdout.trim()));
-    if (stderr) console.error(colors.warning(stderr.trim()));
-  } catch (error) {
-    spinner.fail(colors.error('Version bump failed:'));
-    console.error(colors.warning(error.stdout || error.stderr || error.message));
-  }
+function runBumper(type) {
+  return new Promise((resolve) => {
+    const args = ['bump-version'];
+    if (type && type !== 'interactive') {
+      args.push(type.trim().toLowerCase());
+    }
+    
+    console.log(colors.info(`\nRunning bump-version CLI...`));
+    
+    // Spawn npx to execute the package, inheriting stdio for full interactivity
+    const child = spawn('npx', args, { stdio: 'inherit' });
+    
+    child.on('close', (code) => {
+      if (code === 0) {
+        console.log(colors.success('\n✔ Version bump completed successfully!'));
+      } else {
+        console.log(colors.error(`\n✖ Version bump process exited with code ${code}.`));
+      }
+      resolve();
+    });
+  });
 }
 
 /**
@@ -263,6 +267,7 @@ async function runMenuLoop() {
             name: 'type',
             message: 'Select version bump type:',
             choices: [
+              { name: 'Launch Full bump-version Interactive Wizard', value: 'interactive' },
               { name: 'patch:  Bug fixes (e.g. 1.0.0 -> 1.0.1)', value: 'patch' },
               { name: 'minor:  New features (e.g. 1.0.0 -> 1.1.0)', value: 'minor' },
               { name: 'major:  Breaking changes (e.g. 1.0.0 -> 2.0.0)', value: 'major' },
@@ -499,15 +504,21 @@ program
 program
   .command('bump [type]')
   .alias('b')
-  .description('Bump package version using bump-version (types: major, minor, patch)')
+  .description('Bump package version using bump-version (types: major, minor, patch, interactive)')
   .action(async (type) => {
     if (!type) {
-      const bumpAnswer = await inquirer.prompt([
+      const bumpAnswer = await promptWithEscape([
         {
           type: 'list',
           name: 'type',
           message: 'Select version bump type:',
-          choices: ['patch', 'minor', 'major']
+          choices: [
+            { name: 'interactive', value: 'interactive' },
+            { name: 'patch', value: 'patch' },
+            { name: 'minor', value: 'minor' },
+            { name: 'major', value: 'major' }
+          ],
+          loop: false
         }
       ]);
       await runBumper(bumpAnswer.type);
