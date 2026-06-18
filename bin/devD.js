@@ -34,7 +34,8 @@ import {
   getGeminiApiKey,
   checkForUpdates,
   getLatestRemoteVersion,
-  promptWithEscape
+  promptWithEscape,
+  getLocalVersion
 } from '../src/ui.js';
 import { spawn } from 'child_process';
 
@@ -117,7 +118,7 @@ async function ensureGitRepo() {
  */
 async function runMenuLoop() {
   printBanner();
-  await checkForUpdates(pkg.version);
+  await checkForUpdates(getLocalVersion());
   
   // Guard for Git features
   const gitActive = await ensureGitRepo();
