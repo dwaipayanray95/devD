@@ -69,12 +69,13 @@ function runBumper(type) {
       } else {
         console.log(colors.error(`\n✖ Version bump process exited with code ${code}.`));
       }
+      
+      // Start a silent background update of bump-version only AFTER the interactive session has closed
+      const pkgDir = join(__dirname, '../');
+      exec('npm install --no-audit --no-fund github:dwaipayanray95/bump-version', { cwd: pkgDir }, () => {});
+
       resolve();
     });
-
-    // Start a silent background update of bump-version so it's fresh for subsequent runs
-    const pkgDir = join(__dirname, '../');
-    exec('npm install --no-audit --no-fund github:dwaipayanray95/bump-version', { cwd: pkgDir }, () => {});
   });
 }
 
