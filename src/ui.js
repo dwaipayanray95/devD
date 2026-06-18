@@ -13,7 +13,8 @@ import {
   getRecentCommits, 
   getStashes, 
   runGitCommand,
-  push
+  push,
+  getLocalBranches
 } from './git.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -425,12 +426,42 @@ ${diffContent}`;
     ]);
 
     if (pushAnswer.push) {
-      const pushSpinner = ora(colors.primary('Pushing changes...')).start();
-      const pushRes = await push();
+      const branches = await getLocalBranches();
+      const currentBranch = branches.find(b => b.current)?.name || 'main';
+      
+      const branchAnswer = await promptWithEscape([
+        {
+          type: 'list',
+          name: 'targetBranch',
+          message: 'Select target branch to push to:',
+          choices: [
+            ...branches.map(b => ({ name: b.current ? `${b.name} (current)` : b.name, value: b.name })),
+            { name: '✍️  Type a custom branch name...', value: 'custom' }
+          ],
+          default: currentBranch,
+          loop: false
+        }
+      ]);
+
+      let selectedBranch = branchAnswer.targetBranch;
+      if (selectedBranch === 'custom') {
+        const customAnswer = await promptWithEscape([
+          {
+            type: 'input',
+            name: 'customBranch',
+            message: 'Enter target branch name:',
+            validate: val => val.trim().length > 0 ? true : 'Branch name is required.'
+          }
+        ]);
+        selectedBranch = customAnswer.customBranch.trim();
+      }
+
+      const pushSpinner = ora(colors.primary(`Pushing to origin ${selectedBranch}...`)).start();
+      const pushRes = await runGitCommand(`push origin ${selectedBranch}`);
       pushSpinner.stop();
 
       if (pushRes.success) {
-        console.log(colors.success('✔ Successfully pushed to remote repository.'));
+        console.log(colors.success(`✔ Successfully pushed to origin/${selectedBranch}.`));
       } else {
         console.log(colors.error('\n✖ Push failed:'));
         console.log(colors.warning(pushRes.stderr || pushRes.error));

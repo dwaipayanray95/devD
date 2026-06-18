@@ -1,4 +1,4 @@
-import { exec, execFile } from 'child_process';
+import { exec, execFile, spawn } from 'child_process';
 import { promisify } from 'util';
 
 const execAsync = promisify(exec);
@@ -103,11 +103,34 @@ export async function unstageFiles(files) {
 }
 
 /**
- * Commits currently staged changes.
+ * Commits currently staged changes. Uses spawn with stdio inherit to support GPG signing.
  * @param {string} message 
  */
 export async function commit(message) {
-  return runGitCommand(['commit', '-m', message]);
+  return new Promise((resolve) => {
+    const child = spawn('git', ['commit', '-m', message], { stdio: 'inherit' });
+    child.on('close', (code) => {
+      if (code === 0) {
+        resolve({ success: true, stdout: 'Commit created successfully' });
+      } else {
+        resolve({ success: false, error: `Git commit exited with code ${code}` });
+      }
+    });
+  });
+}
+
+/**
+ * Retrieves the local branches.
+ * @returns {Promise<Array<{name: string, current: boolean}>>}
+ */
+export async function getLocalBranches() {
+  const res = await runGitCommand('branch');
+  if (!res.success || !res.stdout) return [];
+  return res.stdout.split('\n').filter(Boolean).map(line => {
+    const name = line.replace(/^\*\s+/, '').trim();
+    const current = line.startsWith('*');
+    return { name, current };
+  });
 }
 
 /**
