@@ -470,3 +470,55 @@ export async function handleGitError(res) {
     await runCommitWizard();
   }
 }
+
+/**
+ * Checks GitHub for the latest release version.
+ * @returns {Promise<string|null>} - The remote tag name (without 'v') or null if error/no release
+ */
+export async function getLatestRemoteVersion() {
+  try {
+    const controller = new AbortController();
+    const id = setTimeout(() => controller.abort(), 1500); // 1.5s timeout to not block start
+    const res = await fetch('https://api.github.com/repos/dwaipayanray95/devD/releases/latest', {
+      headers: { 'User-Agent': 'devD-CLI' },
+      signal: controller.signal
+    });
+    clearTimeout(id);
+    if (!res.ok) return null;
+    const data = await res.json();
+    return data.tag_name ? data.tag_name.replace(/^v/, '') : null;
+  } catch (error) {
+    return null;
+  }
+}
+
+/**
+ * Checks if the remote version is newer than the local version.
+ * @param {string} local 
+ * @param {string} remote 
+ * @returns {boolean}
+ */
+export function isOutdated(local, remote) {
+  if (!remote) return false;
+  const l = local.split('.').map(Number);
+  const r = remote.split('.').map(Number);
+  for (let i = 0; i < 3; i++) {
+    if (r[i] > l[i]) return true;
+    if (r[i] < l[i]) return false;
+  }
+  return false;
+}
+
+/**
+ * Checks if there is a new update and prints a banner if so.
+ * @param {string} localVersion 
+ */
+export async function checkForUpdates(localVersion) {
+  const latest = await getLatestRemoteVersion();
+  if (latest && isOutdated(localVersion, latest)) {
+    console.log(colors.warning(`✨ A new version of devD is available: v${latest} (Current: v${localVersion})`));
+    console.log(colors.info(`   Run: devD update`));
+    console.log();
+  }
+}
+
