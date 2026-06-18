@@ -18,7 +18,20 @@ import {
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
-const pkg = JSON.parse(readFileSync(join(__dirname, '../package.json'), 'utf8'));
+
+/**
+ * Reads and returns the local package version from package.json dynamically.
+ * @returns {string}
+ */
+export function getLocalVersion() {
+  try {
+    const pkgPath = join(__dirname, '../package.json');
+    const pkgContent = JSON.parse(readFileSync(pkgPath, 'utf8'));
+    return pkgContent.version;
+  } catch (e) {
+    return '0.1.0';
+  }
+}
 
 // Constants for UI theme colors
 export const colors = {
@@ -37,7 +50,7 @@ export const colors = {
  */
 export function printBanner() {
   console.clear();
-  const title = `🚀  DEVD COMPANION CLI v${pkg.version}`;
+  const title = `🚀  DEVD COMPANION CLI v${getLocalVersion()}`;
   const width = 54;
   const padding = Math.max(0, Math.floor((width - title.length) / 2));
   const line = ' '.repeat(padding) + title + ' '.repeat(width - title.length - padding);
