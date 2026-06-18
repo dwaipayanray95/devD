@@ -1,16 +1,26 @@
-import { exec } from 'child_process';
+import { exec, execFile } from 'child_process';
 import { promisify } from 'util';
 
 const execAsync = promisify(exec);
+const execFileAsync = promisify(execFile);
 
 /**
  * Executes a Git command in the current working directory.
- * @param {string} args - The arguments to pass to the git CLI.
+ * @param {string|string[]} args - The arguments or array of arguments to pass to the git CLI.
  * @returns {Promise<{success: boolean, stdout: string, stderr: string, error?: string}>}
  */
 export async function runGitCommand(args, cwd = process.cwd()) {
   try {
-    const { stdout, stderr } = await execAsync(`git ${args}`, { cwd });
+    let stdout, stderr;
+    if (Array.isArray(args)) {
+      const { stdout: out, stderr: err } = await execFileAsync('git', args, { cwd });
+      stdout = out;
+      stderr = err;
+    } else {
+      const { stdout: out, stderr: err } = await execAsync(`git ${args}`, { cwd });
+      stdout = out;
+      stderr = err;
+    }
     return { success: true, stdout: stdout.trim(), stderr: stderr.trim() };
   } catch (error) {
     return { 
@@ -74,18 +84,11 @@ export async function getChangedFiles() {
   });
 }
 
-/**
- * Stages specific files or all changes.
- * @param {string[]|'all'} files 
- */
 export async function stageFiles(files) {
   if (files === 'all') {
-    return runGitCommand('add .');
+    return runGitCommand(['add', '.']);
   }
-  
-  // Escape spaces/quotes in file names safely
-  const escapedFiles = files.map(f => `"${f.replace(/"/g, '\\"')}"`).join(' ');
-  return runGitCommand(`add ${escapedFiles}`);
+  return runGitCommand(['add', ...files]);
 }
 
 /**
@@ -94,10 +97,9 @@ export async function stageFiles(files) {
  */
 export async function unstageFiles(files) {
   if (files === 'all') {
-    return runGitCommand('reset HEAD');
+    return runGitCommand(['reset', 'HEAD']);
   }
-  const escapedFiles = files.map(f => `"${f.replace(/"/g, '\\"')}"`).join(' ');
-  return runGitCommand(`reset HEAD ${escapedFiles}`);
+  return runGitCommand(['reset', 'HEAD', ...files]);
 }
 
 /**
@@ -105,7 +107,7 @@ export async function unstageFiles(files) {
  * @param {string} message 
  */
 export async function commit(message) {
-  return runGitCommand(`commit -m "${message.replace(/"/g, '\\"')}"`);
+  return runGitCommand(['commit', '-m', message]);
 }
 
 /**
@@ -163,13 +165,12 @@ export async function getStashes() {
   return res.stdout.split('\n').filter(Boolean);
 }
 
-/**
- * Saves changes to stash.
- * @param {string} [message]
- */
 export async function stashSave(message) {
-  const msgArg = message ? ` -m "${message.replace(/"/g, '\\"')}"` : '';
-  return runGitCommand(`stash push${msgArg}`);
+  const args = ['stash', 'push'];
+  if (message) {
+    args.push('-m', message);
+  }
+  return runGitCommand(args);
 }
 
 /**
