@@ -203,69 +203,18 @@ export async function runCommitWizard() {
   try {
     printBanner();
     
-    // 1. Get changed files
-  const changedFiles = await getChangedFiles();
-  if (changedFiles.length === 0) {
-    console.log(colors.warning('No changes detected in working tree.'));
-    return;
-  }
+    // 1. Automatically stage all changes in working directory
+    const stageSpinner = ora(colors.primary('Staging all changes...')).start();
+    await stageFiles('all');
+    stageSpinner.succeed(colors.success('Staged all changes successfully.'));
 
-  // 2. Select files to stage
-  const unstagedFiles = changedFiles.filter(f => f.state !== 'staged');
-  const stagedFiles = changedFiles.filter(f => f.state === 'staged');
-  
-  if (unstagedFiles.length > 0) {
-    console.log(colors.info(`Found ${unstagedFiles.length} unstaged file(s).`));
-    const choices = unstagedFiles.map(f => ({
-      name: `${f.path} (${f.type})`,
-      value: f.path,
-      checked: false
-    }));
-
-    const stageAnswer = await promptWithEscape([
-      {
-        type: 'checkbox',
-        name: 'filesToStage',
-        message: 'Select files to stage (press Space to toggle, Enter to confirm):',
-        choices,
-        loop: false
-      }
-    ]);
-
-    if (stageAnswer.filesToStage.length > 0) {
-      const spinner = ora(colors.primary('Staging files...')).start();
-      await stageFiles(stageAnswer.filesToStage);
-      spinner.succeed(colors.success(`Staged ${stageAnswer.filesToStage.length} file(s).`));
-    } else if (stagedFiles.length === 0) {
-      // Nothing staged yet, ask if they want to stage all
-      const stageAllAnswer = await promptWithEscape([
-        {
-          type: 'confirm',
-          name: 'stageAll',
-          message: 'No files selected. Stage ALL changes in working directory?',
-          default: true
-        }
-      ]);
-      if (stageAllAnswer.stageAll) {
-        const spinner = ora(colors.primary('Staging all files...')).start();
-        await stageFiles('all');
-        spinner.succeed(colors.success('Staged all changes.'));
-      } else {
-        console.log(colors.warning('Aborted. No changes are staged.'));
-        return;
-      }
+    // 2. Ensure there are actually staged files before writing commit message
+    const activeChanges = await getChangedFiles();
+    const currentStaged = activeChanges.filter(f => f.state === 'staged');
+    if (currentStaged.length === 0) {
+      console.log(colors.warning('\nNo changes detected in working tree. Nothing to commit.'));
+      return;
     }
-  } else {
-    console.log(colors.success('All changes are already staged.'));
-  }
-
-  // Ensure there are actually staged files before writing commit message
-  const activeChanges = await getChangedFiles();
-  const currentStaged = activeChanges.filter(f => f.state === 'staged');
-  if (currentStaged.length === 0) {
-    console.log(colors.error('\n✖ Error: No changes are staged. Please stage files before committing.'));
-    return;
-  }
 
   // 3. Prompt for Commit Message or AI generation
   const commitOptionsAnswer = await promptWithEscape([
