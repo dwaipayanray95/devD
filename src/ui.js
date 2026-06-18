@@ -36,7 +36,7 @@ export const colors = {
  */
 export function printBanner() {
   console.clear();
-  const title = `🚀  DEVD COMPANION CLI (v${pkg.version})`;
+  const title = `🚀  DEVD COMPANION CLI v${pkg.version}`;
   const width = 54;
   const padding = Math.max(0, Math.floor((width - title.length) / 2));
   const line = ' '.repeat(padding) + title + ' '.repeat(width - title.length - padding);
@@ -211,7 +211,8 @@ export async function runCommitWizard() {
         type: 'checkbox',
         name: 'filesToStage',
         message: 'Select files to stage (press Space to toggle, Enter to confirm):',
-        choices
+        choices,
+        loop: false
       }
     ]);
 
@@ -252,7 +253,8 @@ export async function runCommitWizard() {
         { name: 'Write it myself (Conventional Commit Wizard)', value: 'manual' },
         { name: '🤖 Let Gemini draft it from git diff', value: 'ai' },
         { name: '↩ Back to main menu', value: 'back' }
-      ]
+      ],
+      loop: false
     }
   ]);
 
@@ -305,7 +307,8 @@ ${diffContent}`;
                 { name: 'Use it', value: 'use' },
                 { name: 'Edit it', value: 'edit' },
                 { name: 'Discard and write conventional commit manually', value: 'discard' }
-              ]
+              ],
+              loop: false
             }
           ]);
 
@@ -350,7 +353,8 @@ ${diffContent}`;
           { name: 'chore:    Changes to the build process or auxiliary tools and libraries', value: 'chore' },
           { name: 'ci:       CI configuration files and scripts', value: 'ci' },
           { name: 'revert:   Reverts a previous commit', value: 'revert' }
-        ]
+        ],
+        loop: false
       },
       {
         type: 'input',
@@ -447,7 +451,8 @@ export async function handleGitError(res) {
       type: 'list',
       name: 'action',
       message: 'Choose a recovery action:',
-      choices: options
+      choices: options,
+      loop: false
     }
   ]);
 
