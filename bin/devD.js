@@ -196,9 +196,14 @@ async function runMenuLoop() {
       await showDashboard();
       break;
       
-    case 'commit':
-      await runCommitWizard();
+    case 'commit': {
+      const res = await runCommitWizard();
+      if (res === 'escape') {
+        await runMenuLoop();
+        return;
+      }
       break;
+    }
       
     case 'sync': {
       printBanner();
@@ -246,6 +251,8 @@ async function runMenuLoop() {
       } catch (e) {
         if (e.message !== 'ESCAPE_CANCELLED') throw e;
         console.log(colors.info('\nStash cancelled.'));
+        await runMenuLoop();
+        return;
       }
       break;
     }
@@ -272,6 +279,8 @@ async function runMenuLoop() {
       } catch (e) {
         if (e.message !== 'ESCAPE_CANCELLED') throw e;
         console.log(colors.info('\nBumping cancelled.'));
+        await runMenuLoop();
+        return;
       }
       break;
     }
@@ -281,9 +290,11 @@ async function runMenuLoop() {
         await runAIInteractive();
       } catch (e) {
         if (e.message !== 'ESCAPE_CANCELLED') throw e;
+        await runMenuLoop();
+        return;
       }
       break;
-
+ 
     case 'update': {
       try {
         const updateAnswer = await promptWithEscape([
@@ -300,12 +311,15 @@ async function runMenuLoop() {
           }
         ]);
         if (updateAnswer.type === 'back') {
-          break;
+          await runMenuLoop();
+          return;
         }
         await runSelfUpdate(updateAnswer.type === 'commit');
       } catch (e) {
         if (e.message !== 'ESCAPE_CANCELLED') throw e;
         console.log(colors.info('\nUpdate cancelled.'));
+        await runMenuLoop();
+        return;
       }
       break;
     }

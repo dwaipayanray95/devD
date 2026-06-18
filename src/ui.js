@@ -425,7 +425,7 @@ ${diffContent}`;
   } catch (error) {
     if (error.message === 'ESCAPE_CANCELLED') {
       console.log(colors.info('\nAction cancelled. Returning to main menu...'));
-      return;
+      return 'escape';
     }
     throw error;
   }
