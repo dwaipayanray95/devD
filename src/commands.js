@@ -14,6 +14,7 @@ export const COMMANDS_HELP = [
   { command: 'dir', shortcuts: [], desc: 'Open interactive directory navigator' },
   { command: 'dir <path>', shortcuts: [], desc: 'Change working directory to specific path' },
   { command: 'help', shortcuts: ['h', '?'], desc: 'Show command help list and descriptions' },
+  { command: 'restart', shortcuts: ['r'], desc: 'Restart the devD CLI companion' },
   { command: 'exit', shortcuts: ['q', 'quit'], desc: 'Exit the devD companion CLI' }
 ];
 
@@ -28,6 +29,7 @@ export function parseCommand(cmdInput) {
   if (lowerCmd === 'ai' || lowerCmd === 'a' || lowerCmd === 'gemini') return 'ai';
   if (lowerCmd === 'update' || lowerCmd === 'u') return 'update';
   if (lowerCmd === 'help' || lowerCmd === 'h' || lowerCmd === '?') return 'help';
+  if (lowerCmd === 'restart' || lowerCmd === 'r') return 'restart';
   if (lowerCmd === 'exit' || lowerCmd === 'q' || lowerCmd === 'quit') return 'exit';
   return null;
 }

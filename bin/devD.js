@@ -6,6 +6,7 @@ import ora from 'ora';
 import fs, { readFileSync } from 'fs';
 import { fileURLToPath } from 'url';
 import path, { dirname, join } from 'path';
+import { spawn } from 'child_process';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -110,6 +111,18 @@ async function handleMenuAction(action) {
     case 'help':
       await showHelpMenu();
       break;
+
+    case 'restart': {
+      console.log(colors.primary('\nRestarting devD...'));
+      if (process.stdin.isTTY) {
+        process.stdin.pause();
+      }
+      const child = spawn(process.argv[0], process.argv.slice(1), { stdio: 'inherit' });
+      child.on('close', (code) => {
+        process.exit(code);
+      });
+      return;
+    }
 
     case 'status':
       printBanner();
