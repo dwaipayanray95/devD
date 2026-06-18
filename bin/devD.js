@@ -51,7 +51,7 @@ async function runBumper(type) {
 
   const spinner = ora(colors.primary(`Executing bump-version (${cleanType})...`)).start();
   try {
-    const { stdout, stderr } = await execAsync(`npx github:dwaipayanray95/bump-version ${cleanType}`);
+    const { stdout, stderr } = await execAsync(`npx bump-version ${cleanType}`);
     spinner.succeed(colors.success('Version bump completed!'));
     if (stdout) console.log(colors.muted(stdout.trim()));
     if (stderr) console.error(colors.warning(stderr.trim()));
