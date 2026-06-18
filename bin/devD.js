@@ -412,16 +412,20 @@ async function runSelfUpdate(toLatestCommit = false) {
   });
 }
 
-/**
- * Block the loop until the user presses Enter.
- */
 async function pressEnterToContinue() {
   console.log();
-  await inquirer.prompt([{
-    type: 'input',
-    name: 'continue',
-    message: colors.muted('Press Enter to return to main menu...')
-  }]);
+  try {
+    await promptWithEscape([{
+      type: 'input',
+      name: 'continue',
+      message: colors.muted('Press ESC to return to main menu...')
+    }]);
+  } catch (e) {
+    if (e.message === 'ESCAPE_CANCELLED') {
+      return;
+    }
+    throw e;
+  }
 }
 
 // ==========================================
