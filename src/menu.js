@@ -12,11 +12,13 @@ export async function showInteractiveMenu(gitActive) {
     { name: '🤖 Ask Gemini / AI Query', value: 'ai' },
     { name: '✨ Update devD CLI', value: 'update' },
     { name: 'ℹ️  Help & Commands', value: 'help' },
+    { name: '🔁 Restart devD CLI', value: 'restart' },
     { name: '❌ Exit', value: 'exit' }
   ] : [
     { name: '🤖 Ask Gemini / AI Query', value: 'ai' },
     { name: '✨ Update devD CLI', value: 'update' },
     { name: 'ℹ️  Help & Commands', value: 'help' },
+    { name: '🔁 Restart devD CLI', value: 'restart' },
     { name: '❌ Exit', value: 'exit' }
   ];
 
