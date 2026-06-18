@@ -1,6 +1,6 @@
 {
   "name": "dev-d",
-  "version": "0.1.17",
+  "version": "0.1.18",
   "description": "Developer companion CLI tool for Git & Version Bumping workflow automation.",
   "type": "module",
   "bin": {
