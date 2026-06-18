@@ -86,7 +86,7 @@ export async function showInteractiveMenu(gitActive) {
     function cleanup() {
       process.stdin.removeListener('keypress', onKeypress);
       if (process.stdin.isTTY) {
-        process.stdin.setRawMode(wasRaw);
+        process.stdin.setRawMode(false);
       }
     }
 
