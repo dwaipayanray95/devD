@@ -114,7 +114,8 @@ async function runMenuLoop() {
         choices: [
           { name: '🤖 Ask Gemini / AI Query', value: 'ai' },
           { name: '❌ Exit', value: 'exit' }
-        ]
+        ],
+        loop: false
       }
     ]);
     
@@ -145,7 +146,8 @@ async function runMenuLoop() {
         { name: '🤖 Ask Gemini / AI Query', value: 'ai' },
         { name: '✨ Update devD CLI', value: 'update' },
         { name: '❌ Exit', value: 'exit' }
-      ]
+      ],
+      loop: false
     }
   ]);
 
@@ -227,7 +229,8 @@ async function runMenuLoop() {
             { name: 'minor:  New features (e.g. 1.0.0 -> 1.1.0)', value: 'minor' },
             { name: 'major:  Breaking changes (e.g. 1.0.0 -> 2.0.0)', value: 'major' },
             { name: '↩ Back to main menu', value: 'back' }
-          ]
+          ],
+          loop: false
         }
       ]);
       if (bumpAnswer.type === 'back') {
@@ -251,7 +254,8 @@ async function runMenuLoop() {
             { name: 'Latest Stable Release (GitHub Tag)', value: 'release' },
             { name: 'Latest Bleeding-Edge Commit (main branch)', value: 'commit' },
             { name: '↩ Back to main menu', value: 'back' }
-          ]
+          ],
+          loop: false
         }
       ]);
       if (updateAnswer.type === 'back') {
