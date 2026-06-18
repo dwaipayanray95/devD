@@ -1,6 +1,9 @@
 import inquirer from 'inquirer';
 import chalk from 'chalk';
 import ora from 'ora';
+import { readFileSync } from 'fs';
+import { fileURLToPath } from 'url';
+import { dirname, join } from 'path';
 import { 
   getChangedFiles, 
   stageFiles, 
@@ -11,6 +14,10 @@ import {
   getStashes, 
   runGitCommand 
 } from './git.js';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+const pkg = JSON.parse(readFileSync(join(__dirname, '../package.json'), 'utf8'));
 
 // Constants for UI theme colors
 export const colors = {
@@ -29,8 +36,13 @@ export const colors = {
  */
 export function printBanner() {
   console.clear();
+  const title = `🚀  DEVD COMPANION CLI (v${pkg.version})`;
+  const width = 54;
+  const padding = Math.max(0, Math.floor((width - title.length) / 2));
+  const line = ' '.repeat(padding) + title + ' '.repeat(width - title.length - padding);
+
   console.log(colors.primary('┌────────────────────────────────────────────────────────┐'));
-  console.log(colors.primary('│') + colors.bright('                 🚀  DEVD COMPANION CLI                 ') + colors.primary('│'));
+  console.log(colors.primary('│') + colors.bright(line) + colors.primary('│'));
   console.log(colors.primary('│') + colors.muted('             Accelerating Developer Workflows           ') + colors.primary('│'));
   console.log(colors.primary('└────────────────────────────────────────────────────────┘'));
   console.log();
@@ -238,10 +250,15 @@ export async function runCommitWizard() {
       message: 'Choose commit message creation method:',
       choices: [
         { name: 'Write it myself (Conventional Commit Wizard)', value: 'manual' },
-        { name: '🤖 Let Gemini draft it from git diff', value: 'ai' }
+        { name: '🤖 Let Gemini draft it from git diff', value: 'ai' },
+        { name: '↩ Back to main menu', value: 'back' }
       ]
     }
   ]);
+
+  if (commitOptionsAnswer.method === 'back') {
+    return;
+  }
 
   let commitMessage = '';
 
