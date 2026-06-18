@@ -31,7 +31,7 @@ import {
 import { parseCommand, showHelpMenu } from '../src/commands.js';
 import { navigateDirectories } from '../src/navigator.js';
 import { showInteractiveMenu } from '../src/menu.js';
-import { runSelfUpdate, crossSpawn } from '../src/updater.js';
+import { runSelfUpdate, crossSpawn, openUrl } from '../src/updater.js';
 import { 
   showDashboard, 
   runCommitWizard, 
@@ -144,6 +144,7 @@ async function showSettingsMenu() {
         { name: '✨ Update devD CLI', value: 'update' },
         { name: 'ℹ️  Help & Commands', value: 'help' },
         { name: '🔁 Restart devD CLI', value: 'restart' },
+        { name: '❤️  Made with <3 by @dwaipayanray95', value: 'author' },
         { name: '↩ Back to main menu', value: 'back' }
       ],
       loop: false,
@@ -164,6 +165,10 @@ async function handleMenuAction(action) {
   switch (action) {
     case 'settings':
       await showSettingsMenu();
+      break;
+
+    case 'author':
+      openUrl('https://github.com/dwaipayanray95/devD');
       break;
 
     case 'git-controls': {
