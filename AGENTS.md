@@ -15,10 +15,12 @@ devD/
 │   └── devD.js         # Entry point: CLI command definition (Commander) & router
 └── src/
     ├── commands.js     # Text command/shortcut registry, parser, & Help UI
+    ├── detector.js     # Project framework and build/run command detector
     ├── git.js          # Native Git command executions & status parsers
+    ├── gitControl.js   # Interactive Git sub-menus, branch manager, commits wizard & status dashboard
     ├── menu.js         # Interactive TUI combining list selection & text field
     ├── navigator.js    # Interactive Folder Navigator & drive selector
-    ├── ui.js           # Commit Wizard, dashboard rendering, & UI themes
+    ├── ui.js           # General UI helpers, theme colors, banner printing & Gemini client
     └── updater.js      # Global CLI updater & cross-platform spawner
 ```
 
