@@ -42,10 +42,20 @@ import { spawn } from 'child_process';
 const execAsync = promisify(exec);
 const program = new Command();
 
+/**
+ * Spawns a child process cross-platform without triggering Node deprecation warnings on Windows.
+ */
+function crossSpawn(cmd, args, options = {}) {
+  if (process.platform === 'win32') {
+    // Explicitly run cmd.exe /c on Windows to support batch scripts without shell: true
+    return spawn('cmd.exe', ['/c', cmd, ...args], options);
+  }
+  return spawn(cmd, args, options);
+}
+
 function runBumper(type) {
   return new Promise((resolve) => {
-    const isWin = process.platform === 'win32';
-    const cmd = isWin ? 'npx.cmd' : 'npx';
+    const cmd = 'npx';
     const args = ['--yes', '-p', 'github:dwaipayanray95/bump-version', 'bump-version'];
     if (type && type !== 'interactive') {
       args.push(type.trim().toLowerCase());
@@ -53,8 +63,8 @@ function runBumper(type) {
     
     console.log(colors.info(`\nRunning bump-version CLI from GitHub...`));
     
-    // Execute using npx/npx.cmd to always fetch the latest commit directly from GitHub dynamically (without shell warning)
-    const child = spawn(cmd, args, { stdio: 'inherit' });
+    // Execute using npx to always fetch the latest commit directly from GitHub dynamically (without warnings)
+    const child = crossSpawn(cmd, args, { stdio: 'inherit' });
     
     child.on('close', (code) => {
       if (code === 0) {
@@ -399,8 +409,7 @@ async function runSelfUpdate(toLatestCommit = false) {
     useSudo = process.platform !== 'win32';
   }
 
-  const isWin = process.platform === 'win32';
-  const cmd = useSudo ? 'sudo' : (isWin ? 'npm.cmd' : 'npm');
+  const cmd = useSudo ? 'sudo' : 'npm';
   const args = useSudo 
     ? ['npm', 'install', '-g', target] 
     : ['install', '-g', target];
@@ -408,7 +417,7 @@ async function runSelfUpdate(toLatestCommit = false) {
   console.log(colors.info(`Running: ${cmd} ${args.join(' ')}`));
   
   return new Promise((resolve) => {
-    const child = spawn(cmd, args, { stdio: 'inherit' });
+    const child = crossSpawn(cmd, args, { stdio: 'inherit' });
     
     child.on('close', (code) => {
       if (code === 0) {
