@@ -42,13 +42,11 @@ import { spawn } from 'child_process';
 const execAsync = promisify(exec);
 const program = new Command();
 
-/**
- * Spawns a child process cross-platform without triggering Node deprecation warnings on Windows.
- */
 function crossSpawn(cmd, args, options = {}) {
   if (process.platform === 'win32') {
-    // Explicitly run cmd.exe /c on Windows to support batch scripts without shell: true
-    return spawn('cmd.exe', ['/c', cmd, ...args], options);
+    if (cmd === 'npm' || cmd === 'npx') {
+      return spawn(`${cmd}.cmd`, args, options);
+    }
   }
   return spawn(cmd, args, options);
 }
@@ -190,7 +188,8 @@ async function runMenuLoop() {
           { name: '✨ Update devD CLI', value: 'update' },
           { name: '❌ Exit', value: 'exit' }
         ],
-        loop: false
+        loop: false,
+        pageSize: process.stdout.rows ? Math.max(15, process.stdout.rows - 8) : 15
       }
     ]);
   } catch (error) {
