@@ -116,6 +116,7 @@ async function showGitControlsMenu() {
       name: 'action',
       message: 'Select Git action:',
       choices: [
+        { name: '✍️  Stage & Commit Wizard (Conventional)', value: 'commit' },
         { name: '📊 Show Repo Status Dashboard', value: 'status' },
         { name: '🔄 Sync Repo (Pull & Push)', value: 'sync' },
         { name: '📥 Stash Current Changes', value: 'stash' },
@@ -135,9 +136,41 @@ async function showGitControlsMenu() {
   await handleMenuAction(answer.action);
 }
 
+async function showSettingsMenu() {
+  printBanner();
+  console.log(colors.accent('🛠  SETTINGS MENU\n'));
+  
+  const answer = await inquirer.prompt([
+    {
+      type: 'list',
+      name: 'action',
+      message: 'Select option:',
+      choices: [
+        { name: '✨ Update devD CLI', value: 'update' },
+        { name: 'ℹ️  Help & Commands', value: 'help' },
+        { name: '🔁 Restart devD CLI', value: 'restart' },
+        { name: '↩ Back to main menu', value: 'back' }
+      ],
+      loop: false,
+      pageSize: process.stdout.rows ? Math.max(10, process.stdout.rows - 10) : 15
+    }
+  ]);
+
+  if (answer.action === 'back') {
+    await runMenuLoop();
+    return;
+  }
+  
+  await handleMenuAction(answer.action);
+}
+
 async function handleMenuAction(action) {
   console.clear();
   switch (action) {
+    case 'settings':
+      await showSettingsMenu();
+      break;
+
     case 'git-controls':
       await showGitControlsMenu();
       break;
