@@ -6,6 +6,13 @@ import chalk from 'chalk';
 import ora from 'ora';
 import { exec } from 'child_process';
 import { promisify } from 'util';
+import { readFileSync } from 'fs';
+import { fileURLToPath } from 'url';
+import { dirname, join } from 'path';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+const pkg = JSON.parse(readFileSync(join(__dirname, '../package.json'), 'utf8'));
 
 import { 
   isGitRepository, 
@@ -277,7 +284,7 @@ async function pressEnterToContinue() {
 program
   .name('devD')
   .description('Developer helper CLI companion for Git, stashing, & version bumping.')
-  .version('1.0.0');
+  .version(pkg.version);
 
 // default action when no subcommand is specified
 program
