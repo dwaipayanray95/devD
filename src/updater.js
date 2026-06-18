@@ -14,10 +14,9 @@ export function crossSpawn(cmd, args, options = {}) {
 
 export async function runSelfUpdate(toLatestCommit = false) {
   const spinner = ora(colors.primary('Checking remote updates...')).start();
-  let target = 'dwaipayanray95/devD';
+  let target = 'dwaipayanray95/devD#main';
   
   if (toLatestCommit) {
-    target = 'dwaipayanray95/devD#main';
     spinner.text = colors.primary('Updating to the latest commit on main branch...');
   } else {
     try {
@@ -26,10 +25,10 @@ export async function runSelfUpdate(toLatestCommit = false) {
         target = `dwaipayanray95/devD#v${latest}`;
         spinner.text = colors.primary(`Updating to latest release v${latest}...`);
       } else {
-        spinner.text = colors.primary('Updating to latest commit...');
+        spinner.text = colors.primary('Updating to the latest commit on main branch...');
       }
     } catch (e) {
-      // fallback
+      spinner.text = colors.primary('Updating to the latest commit on main branch...');
     }
   }
   spinner.stop();
