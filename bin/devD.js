@@ -46,9 +46,16 @@ function runBumper(type) {
     
     console.log(colors.info(`\nRunning bump-version CLI from GitHub...`));
     
+    if (process.stdin.isTTY) {
+      process.stdin.pause();
+    }
+
     const child = crossSpawn(cmd, args, { stdio: 'inherit' });
     
     child.on('close', (code) => {
+      if (process.stdin.isTTY) {
+        process.stdin.resume();
+      }
       if (code === 0) {
         console.log(colors.success('\n✔ Version bump completed successfully!'));
         resolve('success');
