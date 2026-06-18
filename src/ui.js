@@ -12,7 +12,8 @@ import {
   getAheadBehind, 
   getRecentCommits, 
   getStashes, 
-  runGitCommand 
+  runGitCommand,
+  push
 } from './git.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -395,7 +396,7 @@ ${diffContent}`;
 
     if (pushAnswer.push) {
       const pushSpinner = ora(colors.primary('Pushing changes...')).start();
-      const pushRes = await runGitCommand('push');
+      const pushRes = await push();
       pushSpinner.stop();
 
       if (pushRes.success) {
