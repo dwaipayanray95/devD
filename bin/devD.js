@@ -41,6 +41,18 @@ import {
 } from '../src/gitControl.js';
 import { detectPlatform } from '../src/detector.js';
 
+const GIT_ACTIONS = new Set([
+  'git-controls',
+  'branch-manager',
+  'commit',
+  'sync',
+  'pull',
+  'stash',
+  'stash-pop',
+  'status',
+  'bump'
+]);
+
 const program = new Command();
 
 function runBumper(type) {
@@ -432,7 +444,7 @@ async function runMenuLoop() {
     
     const action = parseCommand(cmdInput);
     if (action) {
-      if (action !== 'ai' && action !== 'update' && action !== 'exit') {
+      if (GIT_ACTIONS.has(action)) {
         const gitActiveChecked = await ensureGitRepo();
         if (!gitActiveChecked) {
           await runMenuLoop();
@@ -450,7 +462,7 @@ async function runMenuLoop() {
     }
   } else {
     const action = result.value;
-    if (action !== 'ai' && action !== 'update' && action !== 'exit') {
+    if (GIT_ACTIONS.has(action)) {
       const gitActiveChecked = await ensureGitRepo();
       if (!gitActiveChecked) {
         await runMenuLoop();
