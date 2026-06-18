@@ -2,6 +2,8 @@ import inquirer from 'inquirer';
 import { colors, printBanner } from './ui.js';
 
 export const COMMANDS_HELP = [
+  { command: 'run', shortcuts: ['r', 'dev'], desc: 'Run the project (auto-detected framework)' },
+  { command: 'build', shortcuts: [], desc: 'Build the project (auto-detected framework)' },
   { command: 'status', shortcuts: ['s', 'dashboard'], desc: 'Show repository status dashboard' },
   { command: 'commit', shortcuts: ['c', 'wizard'], desc: 'Run conventional commit wizard' },
   { command: 'sync', shortcuts: ['y'], desc: 'Pull remote changes and push local commits' },
@@ -21,6 +23,8 @@ export const COMMANDS_HELP = [
 
 export function parseCommand(cmdInput) {
   const lowerCmd = cmdInput.trim().toLowerCase();
+  if (lowerCmd === 'run' || lowerCmd === 'r' || lowerCmd === 'dev') return 'run-app';
+  if (lowerCmd === 'build') return 'build-app';
   if (lowerCmd === 'status' || lowerCmd === 's' || lowerCmd === 'dashboard') return 'status';
   if (lowerCmd === 'commit' || lowerCmd === 'c' || lowerCmd === 'wizard') return 'commit';
   if (lowerCmd === 'sync' || lowerCmd === 'y') return 'sync';

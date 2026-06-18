@@ -4,11 +4,15 @@ import { colors, printBanner } from './ui.js';
 export async function showInteractiveMenu(gitActive) {
   const items = gitActive ? [
     { name: '⚙️  Git Controls', value: 'git-controls' },
+    { name: '🏃 Run App (Auto-Detect)', value: 'run-app' },
+    { name: '📦 Build App (Auto-Detect)', value: 'build-app' },
     { name: '🚀 Bump Version', value: 'bump' },
     { name: '🤖 Ask Gemini / AI Query', value: 'ai' },
     { name: '🛠 Settings', value: 'settings' },
     { name: '❌ Exit', value: 'exit' }
   ] : [
+    { name: '🏃 Run App (Auto-Detect)', value: 'run-app' },
+    { name: '📦 Build App (Auto-Detect)', value: 'build-app' },
     { name: '🤖 Ask Gemini / AI Query', value: 'ai' },
     { name: '🛠 Settings', value: 'settings' },
     { name: '❌ Exit', value: 'exit' }
