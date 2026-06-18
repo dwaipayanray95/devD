@@ -29,8 +29,11 @@ import {
   handleGitError, 
   askGemini, 
   colors,
-  getGeminiApiKey
+  getGeminiApiKey,
+  checkForUpdates,
+  getLatestRemoteVersion
 } from '../src/ui.js';
+import { spawn } from 'child_process';
 
 const execAsync = promisify(exec);
 const program = new Command();
@@ -97,6 +100,7 @@ async function ensureGitRepo() {
  */
 async function runMenuLoop() {
   printBanner();
+  await checkForUpdates(pkg.version);
   
   // Guard for Git features
   const gitActive = await ensureGitRepo();
@@ -139,6 +143,7 @@ async function runMenuLoop() {
         { name: '📤 Pop Last Stash', value: 'stash-pop' },
         { name: '🚀 Bump Version', value: 'bump' },
         { name: '🤖 Ask Gemini / AI Query', value: 'ai' },
+        { name: '✨ Update devD CLI', value: 'update' },
         { name: '❌ Exit', value: 'exit' }
       ]
     }
@@ -231,6 +236,22 @@ async function runMenuLoop() {
     case 'ai':
       await runAIInteractive();
       break;
+
+    case 'update': {
+      const updateAnswer = await inquirer.prompt([
+        {
+          type: 'list',
+          name: 'type',
+          message: 'What would you like to update to?',
+          choices: [
+            { name: 'Latest Stable Release (GitHub Tag)', value: 'release' },
+            { name: 'Latest Bleeding-Edge Commit (main branch)', value: 'commit' }
+          ]
+        }
+      ]);
+      await runSelfUpdate(updateAnswer.type === 'commit');
+      break;
+    }
       
     case 'exit':
       console.log(colors.success('Goodbye!'));
@@ -263,6 +284,65 @@ async function runAIInteractive() {
   } catch (error) {
     console.error(colors.error(`Error query: ${error.message}`));
   }
+}
+
+/**
+ * Performs self-update via global npm installation from GitHub.
+ * @param {boolean} toLatestCommit 
+ */
+async function runSelfUpdate(toLatestCommit = false) {
+  const spinner = ora(colors.primary('Checking remote updates...')).start();
+  let target = 'dwaipayanray95/devD';
+  
+  if (toLatestCommit) {
+    target = 'dwaipayanray95/devD#main';
+    spinner.text = colors.primary('Updating to the latest commit on main branch...');
+  } else {
+    try {
+      const latest = await getLatestRemoteVersion();
+      if (latest) {
+        target = `dwaipayanray95/devD#v${latest}`;
+        spinner.text = colors.primary(`Updating to latest release v${latest}...`);
+      } else {
+        spinner.text = colors.primary('Updating to latest commit...');
+      }
+    } catch (e) {
+      // fallback
+    }
+  }
+  spinner.stop();
+
+  // Check npm prefix permissions
+  const npmPrefixRes = await execAsync('npm config get prefix');
+  const prefix = npmPrefixRes.stdout.trim();
+  
+  let useSudo = false;
+  try {
+    const fs = await import('fs');
+    const path = await import('path');
+    const testPath = path.join(prefix, 'lib/node_modules/.devD-write-test');
+    fs.writeFileSync(testPath, '');
+    fs.unlinkSync(testPath);
+  } catch (err) {
+    useSudo = process.platform !== 'win32';
+  }
+
+  const cmd = useSudo ? 'sudo' : 'npm';
+  const args = useSudo 
+    ? ['npm', 'install', '-g', target] 
+    : ['install', '-g', target];
+
+  console.log(colors.info(`Running: ${cmd} ${args.join(' ')}`));
+  
+  const child = spawn(cmd, args, { stdio: 'inherit' });
+  
+  child.on('close', (code) => {
+    if (code === 0) {
+      console.log(colors.success('✔ devD has been updated successfully!'));
+    } else {
+      console.log(colors.error(`✖ Update failed with exit code ${code}.`));
+    }
+  });
 }
 
 /**
@@ -371,6 +451,15 @@ program
     } else {
       await runBumper(type);
     }
+  });
+
+program
+  .command('update')
+  .alias('u')
+  .description('Update devD CLI to the latest version')
+  .option('-c, --commit', 'Update to the latest commit on the main branch')
+  .action(async (options) => {
+    await runSelfUpdate(options.commit);
   });
 
 program
