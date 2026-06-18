@@ -225,10 +225,14 @@ async function runMenuLoop() {
           choices: [
             { name: 'patch:  Bug fixes (e.g. 1.0.0 -> 1.0.1)', value: 'patch' },
             { name: 'minor:  New features (e.g. 1.0.0 -> 1.1.0)', value: 'minor' },
-            { name: 'major:  Breaking changes (e.g. 1.0.0 -> 2.0.0)', value: 'major' }
+            { name: 'major:  Breaking changes (e.g. 1.0.0 -> 2.0.0)', value: 'major' },
+            { name: '↩ Back to main menu', value: 'back' }
           ]
         }
       ]);
+      if (bumpAnswer.type === 'back') {
+        break;
+      }
       await runBumper(bumpAnswer.type);
       break;
     }
@@ -245,10 +249,14 @@ async function runMenuLoop() {
           message: 'What would you like to update to?',
           choices: [
             { name: 'Latest Stable Release (GitHub Tag)', value: 'release' },
-            { name: 'Latest Bleeding-Edge Commit (main branch)', value: 'commit' }
+            { name: 'Latest Bleeding-Edge Commit (main branch)', value: 'commit' },
+            { name: '↩ Back to main menu', value: 'back' }
           ]
         }
       ]);
+      if (updateAnswer.type === 'back') {
+        break;
+      }
       await runSelfUpdate(updateAnswer.type === 'commit');
       break;
     }
