@@ -4,44 +4,69 @@
 
 ---
 
-## 📦 Installation & Setup
+## 📦 Installation Methods
 
-1. **Clone/Download** this project.
-2. Open terminal in the project directory `/Users/rayr/.gemini/antigravity/scratch/dev-helper-cli`.
-3. Link the package globally:
-   ```bash
-   npm link
-   ```
-4. Configure your Gemini API Key (Optional, for AI features):
-   ```bash
-   export GEMINI_API_KEY="your-api-key"
-   ```
-   *Tip: Add this export to your `~/.zshrc` or `~/.bashrc` to make it permanent.*
+### Method 1: The Quick Installer (Recommended)
+Paste this command into your terminal to automatically check prerequisites and install the tool globally:
+```bash
+curl -fsSL https://raw.githubusercontent.com/dwaipayanray95/devD/main/install.sh | bash
+```
+
+### Method 2: Global Installation via GitHub (Direct NPM)
+Download and link the tool directly from the GitHub repository:
+```bash
+npm install -g dwaipayanray95/devD
+```
+
+### Method 3: Global Installation via NPM Registry (If Published)
+If the tool is published to the NPM registry, install it using:
+```bash
+npm install -g dev-d
+```
+
+### Method 4: Local Clone & Setup (For Development)
+Clone the repository and register it globally on your local machine:
+```bash
+git clone https://github.com/dwaipayanray95/devD.git
+cd devD
+npm install
+npm link
+```
 
 ---
 
-## 🛠 Usage & Commands
+## 🔑 Gemini AI Configuration (Optional)
+To use the AI-drafted commit message feature or general queries, set your Gemini API key in your terminal session or add it to your shells profile file (`~/.zshrc` or `~/.bashrc`):
+```bash
+export GEMINI_API_KEY="your-gemini-api-key"
+```
 
-Running `devD` on its own opens the interactive, looping main menu:
+---
+
+## 🛠 Usage & Command Shortcuts
+
+Run `devD` on its own to open the interactive, looping main menu:
 ```bash
 devD
 ```
 
-### Shortcuts & Subcommands
+Alternatively, run specific actions immediately using command shortcuts:
 
-- **`devD status`** (or **`devD d`**): Displays the status dashboard (branch, sync, modified files, recent commits).
-- **`devD commit`** (or **`devD c`**): Launches the Conventional Commit Wizard (file checklist, auto-diff AI commits, push prompts).
-- **`devD sync`** (or **`devD s`**): Pulls upstream changes (rebase) and pushes local commits.
-- **`devD bump [type]`** (or **`devD b [type]`**): Bumps the version using your `bump-version` package (types: `patch`, `minor`, `major`).
-- **`devD stash`**: Interactively stashes or pops modifications (`devD stash --pop`).
-- **`devD ai "<prompt>"`**: Asks Gemini a query directly from the terminal (e.g. `devD ai "write a python function to merge dicts"`).
+| Command | Alias | Description |
+| :--- | :--- | :--- |
+| `devD status` | `devD d` | Displays the status dashboard (branch, sync, changes, recent commits). |
+| `devD commit` | `devD c` | Runs Conventional Commit Wizard (stages files, inputs message, or drafts via Gemini). |
+| `devD sync` | `devD s` | Pulls upstream updates (rebase) and pushes local commits. |
+| `devD bump [type]` | `devD b [type]` | Bumps package version (types: `patch`, `minor`, `major`). |
+| `devD stash` | — | Stashes modifications (use `--pop` or `-p` to restore). |
+| `devD ai "<prompt>"` | — | Asks Gemini a development question directly. |
 
 ---
 
 ## 🎨 Technology Stack
 - **Node.js**: ES Modules (ESM)
 - **commander**: CLI argument parsing & routing
-- **inquirer**: Rich user input interfaces (checklists, lists, inputs)
+- **inquirer**: Interactive checklist, choice, and input prompts
 - **chalk**: Dynamic string styling and console visual themes
 - **ora**: Elegant CLI loading spinners
-- **Native Fetch**: Simple HTTP integration with the Gemini API
+- **Native Fetch**: Simple HTTP integration with the Gemini API (Zero-dependency API helper)
