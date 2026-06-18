@@ -10,6 +10,7 @@ import fs, { readFileSync } from 'fs';
 import { fileURLToPath } from 'url';
 import path, { dirname, join } from 'path';
 import { createRequire } from 'module';
+import readline from 'readline';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -402,29 +403,109 @@ async function handleMenuAction(action) {
 }
 
 /**
+ * Custom interactive menu component combining a text input field and a selectable list.
+ */
+async function showInteractiveMenu(gitActive) {
+  const items = gitActive ? [
+    { name: '📊 Show Repo Status Dashboard', value: 'status' },
+    { name: '✍️  Stage & Commit Wizard (Conventional)', value: 'commit' },
+    { name: '🔄 Sync Repo (Pull & Push)', value: 'sync' },
+    { name: '📥 Stash Current Changes', value: 'stash' },
+    { name: '📤 Pop Last Stash', value: 'stash-pop' },
+    { name: '🚀 Bump Version', value: 'bump' },
+    { name: '🤖 Ask Gemini / AI Query', value: 'ai' },
+    { name: '✨ Update devD CLI', value: 'update' },
+    { name: '❌ Exit', value: 'exit' }
+  ] : [
+    { name: '🤖 Ask Gemini / AI Query', value: 'ai' },
+    { name: '❌ Exit', value: 'exit' }
+  ];
+
+  let inputBuffer = '';
+  let selectedIndex = 0;
+  
+  const wasRaw = process.stdin.isRaw;
+  if (process.stdin.isTTY) {
+    process.stdin.setRawMode(true);
+  }
+  readline.emitKeypressEvents(process.stdin);
+  
+  const renderUI = (buffer, sIndex) => {
+    printBanner();
+    console.log(colors.accent('⌨️  COMMAND / SHORTCUT'));
+    console.log(`   devD > ${colors.bright(buffer)}${colors.muted('_')}`);
+    console.log();
+    console.log(colors.accent('📋  SELECTABLE MENU'));
+    items.forEach((item, idx) => {
+      if (idx === sIndex) {
+        console.log(colors.primary(`   ❯ ${colors.bright(item.name)}`));
+      } else {
+        console.log(`     ${colors.muted(item.name)}`);
+      }
+    });
+    console.log();
+    console.log(colors.muted('   [Arrows] Navigate menu  |  [Type] Custom command / dir path  |  [Enter] Confirm'));
+  };
+
+  renderUI(inputBuffer, selectedIndex);
+
+  return new Promise((resolve) => {
+    const onKeypress = (str, key) => {
+      if (key) {
+        if (key.ctrl && key.name === 'c') {
+          cleanup();
+          process.exit(0);
+        }
+        
+        if (key.name === 'up') {
+          selectedIndex = (selectedIndex - 1 + items.length) % items.length;
+          renderUI(inputBuffer, selectedIndex);
+        } else if (key.name === 'down') {
+          selectedIndex = (selectedIndex + 1) % items.length;
+          renderUI(inputBuffer, selectedIndex);
+        } else if (key.name === 'return' || key.name === 'enter') {
+          cleanup();
+          if (inputBuffer.trim()) {
+            resolve({ type: 'input', value: inputBuffer.trim() });
+          } else {
+            resolve({ type: 'menu', value: items[selectedIndex].value });
+          }
+        } else if (key.name === 'escape' || key.name === 'esc') {
+          cleanup();
+          resolve({ type: 'menu', value: 'exit' });
+        } else if (key.name === 'backspace') {
+          inputBuffer = inputBuffer.slice(0, -1);
+          renderUI(inputBuffer, selectedIndex);
+        } else if (key.sequence && key.sequence.length === 1 && !key.ctrl && !key.meta) {
+          inputBuffer += key.sequence;
+          renderUI(inputBuffer, selectedIndex);
+        }
+      }
+    };
+
+    function cleanup() {
+      process.stdin.removeListener('keypress', onKeypress);
+      if (process.stdin.isTTY) {
+        process.stdin.setRawMode(wasRaw);
+      }
+    }
+
+    process.stdin.on('keypress', onKeypress);
+  });
+}
+
+/**
  * Main interactive console menu loop.
  */
 async function runMenuLoop() {
   printBanner();
   await checkForUpdates(getLocalVersion());
   
-  let inputAnswer;
-  try {
-    inputAnswer = await inquirer.prompt([
-      {
-        type: 'input',
-        name: 'cmd',
-        message: 'devD >',
-        suffix: colors.muted(' (Type command/shortcut, dir [path], or press Enter for main menu)')
-      }
-    ]);
-  } catch (error) {
-    console.log(colors.success('Goodbye!'));
-    process.exit(0);
-  }
+  const gitActive = await isGitRepository();
+  const result = await showInteractiveMenu(gitActive);
 
-  const cmdInput = inputAnswer.cmd ? inputAnswer.cmd.trim() : '';
-  if (cmdInput) {
+  if (result.type === 'input') {
+    const cmdInput = result.value;
     if (cmdInput.toLowerCase() === 'dir') {
       const targetDir = await navigateDirectories();
       if (targetDir) {
@@ -462,8 +543,8 @@ async function runMenuLoop() {
     
     if (action) {
       if (action !== 'ai' && action !== 'update' && action !== 'exit') {
-        const gitActive = await ensureGitRepo();
-        if (!gitActive) {
+        const gitActiveChecked = await ensureGitRepo();
+        if (!gitActiveChecked) {
           await runMenuLoop();
           return;
         }
@@ -477,81 +558,17 @@ async function runMenuLoop() {
       await runMenuLoop();
       return;
     }
-  }
-
-  // Guard for Git features
-  const gitActive = await ensureGitRepo();
-  if (!gitActive) {
-    // If not in git and refused to init, run mini-menu for AI/Exit only
-    let answer;
-    try {
-      answer = await promptWithEscape([
-        {
-          type: 'list',
-          name: 'action',
-          message: 'No active Git repository. What would you like to do?',
-          choices: [
-            { name: '🤖 Ask Gemini / AI Query', value: 'ai' },
-            { name: '❌ Exit', value: 'exit' }
-          ],
-          loop: false
-        }
-      ]);
-    } catch (error) {
-      if (error.message === 'ESCAPE_CANCELLED') {
-        console.log(colors.success('Goodbye!'));
-        process.exit(0);
+  } else {
+    const action = result.value;
+    if (action !== 'ai' && action !== 'update' && action !== 'exit') {
+      const gitActiveChecked = await ensureGitRepo();
+      if (!gitActiveChecked) {
+        await runMenuLoop();
+        return;
       }
-      throw error;
     }
-    
-    if (answer.action === 'ai') {
-      try {
-        await runAIInteractive();
-      } catch (e) {
-        if (e.message !== 'ESCAPE_CANCELLED') throw e;
-      }
-      await pressEnterToContinue();
-      await runMenuLoop();
-    } else {
-      console.log(colors.success('Goodbye!'));
-      process.exit(0);
-    }
-    return;
+    await handleMenuAction(action);
   }
-
-  // Active Git menu choices
-  let answers;
-  try {
-    answers = await promptWithEscape([
-      {
-        type: 'list',
-        name: 'action',
-        message: 'What would you like to do?',
-        choices: [
-          { name: '📊 Show Repo Status Dashboard', value: 'status' },
-          { name: '✍️  Stage & Commit Wizard (Conventional)', value: 'commit' },
-          { name: '🔄 Sync Repo (Pull & Push)', value: 'sync' },
-          { name: '📥 Stash Current Changes', value: 'stash' },
-          { name: '📤 Pop Last Stash', value: 'stash-pop' },
-          { name: '🚀 Bump Version', value: 'bump' },
-          { name: '🤖 Ask Gemini / AI Query', value: 'ai' },
-          { name: '✨ Update devD CLI', value: 'update' },
-          { name: '❌ Exit', value: 'exit' }
-        ],
-        loop: false,
-        pageSize: process.stdout.rows ? Math.max(15, process.stdout.rows - 8) : 15
-      }
-    ]);
-  } catch (error) {
-    if (error.message === 'ESCAPE_CANCELLED') {
-      console.log(colors.success('Goodbye!'));
-      process.exit(0);
-    }
-    throw error;
-  }
-
-  await handleMenuAction(answers.action);
 }
 
 /**
