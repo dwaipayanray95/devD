@@ -49,7 +49,7 @@ const program = new Command();
 function runBumper(type) {
   return new Promise((resolve) => {
     const cmd = 'npx';
-    const args = ['--yes', 'github:dwaipayanray95/bump-version'];
+    const args = ['--yes', '-p', 'github:dwaipayanray95/bump-version', 'bump-version'];
     if (type && type !== 'interactive') {
       args.push(type.trim().toLowerCase());
     }
@@ -428,7 +428,7 @@ async function pressEnterToContinue() {
 program
   .name('devD')
   .description('Developer helper CLI companion for Git, stashing, & version bumping.')
-  .version(pkg.version);
+  .version(getLocalVersion());
 
 // default action when no subcommand is specified
 program
