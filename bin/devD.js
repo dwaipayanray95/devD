@@ -31,7 +31,8 @@ import {
   colors,
   getGeminiApiKey,
   checkForUpdates,
-  getLatestRemoteVersion
+  getLatestRemoteVersion,
+  promptWithEscape
 } from '../src/ui.js';
 import { spawn } from 'child_process';
 
@@ -70,14 +71,23 @@ async function ensureGitRepo() {
   if (active) return true;
 
   console.log(colors.warning('⚠️  Not inside a Git repository.'));
-  const answer = await inquirer.prompt([
-    {
-      type: 'confirm',
-      name: 'initRepo',
-      message: 'Would you like to initialize a Git repository in this folder?',
-      default: true
+  let answer;
+  try {
+    answer = await promptWithEscape([
+      {
+        type: 'confirm',
+        name: 'initRepo',
+        message: 'Would you like to initialize a Git repository in this folder?',
+        default: true
+      }
+    ]);
+  } catch (error) {
+    if (error.message === 'ESCAPE_CANCELLED') {
+      console.log(colors.success('Goodbye!'));
+      process.exit(0);
     }
-  ]);
+    throw error;
+  }
 
   if (answer.initRepo) {
     const spinner = ora(colors.primary('Initializing Git repository...')).start();
@@ -106,21 +116,34 @@ async function runMenuLoop() {
   const gitActive = await ensureGitRepo();
   if (!gitActive) {
     // If not in git and refused to init, run mini-menu for AI/Exit only
-    const answer = await inquirer.prompt([
-      {
-        type: 'list',
-        name: 'action',
-        message: 'No active Git repository. What would you like to do?',
-        choices: [
-          { name: '🤖 Ask Gemini / AI Query', value: 'ai' },
-          { name: '❌ Exit', value: 'exit' }
-        ],
-        loop: false
+    let answer;
+    try {
+      answer = await promptWithEscape([
+        {
+          type: 'list',
+          name: 'action',
+          message: 'No active Git repository. What would you like to do?',
+          choices: [
+            { name: '🤖 Ask Gemini / AI Query', value: 'ai' },
+            { name: '❌ Exit', value: 'exit' }
+          ],
+          loop: false
+        }
+      ]);
+    } catch (error) {
+      if (error.message === 'ESCAPE_CANCELLED') {
+        console.log(colors.success('Goodbye!'));
+        process.exit(0);
       }
-    ]);
+      throw error;
+    }
     
     if (answer.action === 'ai') {
-      await runAIInteractive();
+      try {
+        await runAIInteractive();
+      } catch (e) {
+        if (e.message !== 'ESCAPE_CANCELLED') throw e;
+      }
       await pressEnterToContinue();
       await runMenuLoop();
     } else {
@@ -131,25 +154,34 @@ async function runMenuLoop() {
   }
 
   // Active Git menu choices
-  const answers = await inquirer.prompt([
-    {
-      type: 'list',
-      name: 'action',
-      message: 'What would you like to do?',
-      choices: [
-        { name: '📊 Show Repo Status Dashboard', value: 'status' },
-        { name: '✍️  Stage & Commit Wizard (Conventional)', value: 'commit' },
-        { name: '🔄 Sync Repo (Pull & Push)', value: 'sync' },
-        { name: '📥 Stash Current Changes', value: 'stash' },
-        { name: '📤 Pop Last Stash', value: 'stash-pop' },
-        { name: '🚀 Bump Version', value: 'bump' },
-        { name: '🤖 Ask Gemini / AI Query', value: 'ai' },
-        { name: '✨ Update devD CLI', value: 'update' },
-        { name: '❌ Exit', value: 'exit' }
-      ],
-      loop: false
+  let answers;
+  try {
+    answers = await promptWithEscape([
+      {
+        type: 'list',
+        name: 'action',
+        message: 'What would you like to do?',
+        choices: [
+          { name: '📊 Show Repo Status Dashboard', value: 'status' },
+          { name: '✍️  Stage & Commit Wizard (Conventional)', value: 'commit' },
+          { name: '🔄 Sync Repo (Pull & Push)', value: 'sync' },
+          { name: '📥 Stash Current Changes', value: 'stash' },
+          { name: '📤 Pop Last Stash', value: 'stash-pop' },
+          { name: '🚀 Bump Version', value: 'bump' },
+          { name: '🤖 Ask Gemini / AI Query', value: 'ai' },
+          { name: '✨ Update devD CLI', value: 'update' },
+          { name: '❌ Exit', value: 'exit' }
+        ],
+        loop: false
+      }
+    ]);
+  } catch (error) {
+    if (error.message === 'ESCAPE_CANCELLED') {
+      console.log(colors.success('Goodbye!'));
+      process.exit(0);
     }
-  ]);
+    throw error;
+  }
 
   switch (answers.action) {
     case 'status':
@@ -187,21 +219,26 @@ async function runMenuLoop() {
     }
     
     case 'stash': {
-      const stashAnswer = await inquirer.prompt([
-        {
-          type: 'input',
-          name: 'message',
-          message: 'Stash message (optional, press Enter to skip):',
-          filter: val => val.trim()
+      try {
+        const stashAnswer = await promptWithEscape([
+          {
+            type: 'input',
+            name: 'message',
+            message: 'Stash message (optional, press Enter to skip):',
+            filter: val => val.trim()
+          }
+        ]);
+        const spinner = ora(colors.primary('Saving changes to stash...')).start();
+        const res = await stashSave(stashAnswer.message);
+        spinner.stop();
+        if (res.success) {
+          console.log(colors.success('✔ Stashed changes successfully.'));
+        } else {
+          console.log(colors.error('Failed to stash changes: ' + (res.stderr || res.error)));
         }
-      ]);
-      const spinner = ora(colors.primary('Saving changes to stash...')).start();
-      const res = await stashSave(stashAnswer.message);
-      spinner.stop();
-      if (res.success) {
-        console.log(colors.success('✔ Stashed changes successfully.'));
-      } else {
-        console.log(colors.error('Failed to stash changes: ' + (res.stderr || res.error)));
+      } catch (e) {
+        if (e.message !== 'ESCAPE_CANCELLED') throw e;
+        console.log(colors.info('\nStash cancelled.'));
       }
       break;
     }
@@ -219,49 +256,63 @@ async function runMenuLoop() {
     }
     
     case 'bump': {
-      const bumpAnswer = await inquirer.prompt([
-        {
-          type: 'list',
-          name: 'type',
-          message: 'Select version bump type:',
-          choices: [
-            { name: 'patch:  Bug fixes (e.g. 1.0.0 -> 1.0.1)', value: 'patch' },
-            { name: 'minor:  New features (e.g. 1.0.0 -> 1.1.0)', value: 'minor' },
-            { name: 'major:  Breaking changes (e.g. 1.0.0 -> 2.0.0)', value: 'major' },
-            { name: '↩ Back to main menu', value: 'back' }
-          ],
-          loop: false
+      try {
+        const bumpAnswer = await promptWithEscape([
+          {
+            type: 'list',
+            name: 'type',
+            message: 'Select version bump type:',
+            choices: [
+              { name: 'patch:  Bug fixes (e.g. 1.0.0 -> 1.0.1)', value: 'patch' },
+              { name: 'minor:  New features (e.g. 1.0.0 -> 1.1.0)', value: 'minor' },
+              { name: 'major:  Breaking changes (e.g. 1.0.0 -> 2.0.0)', value: 'major' },
+              { name: '↩ Back to main menu', value: 'back' }
+            ],
+            loop: false
+          }
+        ]);
+        if (bumpAnswer.type === 'back') {
+          break;
         }
-      ]);
-      if (bumpAnswer.type === 'back') {
-        break;
+        await runBumper(bumpAnswer.type);
+      } catch (e) {
+        if (e.message !== 'ESCAPE_CANCELLED') throw e;
+        console.log(colors.info('\nBumping cancelled.'));
       }
-      await runBumper(bumpAnswer.type);
       break;
     }
     
     case 'ai':
-      await runAIInteractive();
+      try {
+        await runAIInteractive();
+      } catch (e) {
+        if (e.message !== 'ESCAPE_CANCELLED') throw e;
+      }
       break;
 
     case 'update': {
-      const updateAnswer = await inquirer.prompt([
-        {
-          type: 'list',
-          name: 'type',
-          message: 'What would you like to update to?',
-          choices: [
-            { name: 'Latest Stable Release (GitHub Tag)', value: 'release' },
-            { name: 'Latest Bleeding-Edge Commit (main branch)', value: 'commit' },
-            { name: '↩ Back to main menu', value: 'back' }
-          ],
-          loop: false
+      try {
+        const updateAnswer = await promptWithEscape([
+          {
+            type: 'list',
+            name: 'type',
+            message: 'What would you like to update to?',
+            choices: [
+              { name: 'Latest Stable Release (GitHub Tag)', value: 'release' },
+              { name: 'Latest Bleeding-Edge Commit (main branch)', value: 'commit' },
+              { name: '↩ Back to main menu', value: 'back' }
+            ],
+            loop: false
+          }
+        ]);
+        if (updateAnswer.type === 'back') {
+          break;
         }
-      ]);
-      if (updateAnswer.type === 'back') {
-        break;
+        await runSelfUpdate(updateAnswer.type === 'commit');
+      } catch (e) {
+        if (e.message !== 'ESCAPE_CANCELLED') throw e;
+        console.log(colors.info('\nUpdate cancelled.'));
       }
-      await runSelfUpdate(updateAnswer.type === 'commit');
       break;
     }
       
@@ -281,7 +332,7 @@ async function runMenuLoop() {
 async function runAIInteractive() {
   console.log();
   console.log(colors.primary('🤖 Gemini Assistant Console'));
-  const answers = await inquirer.prompt([
+  const answers = await promptWithEscape([
     {
       type: 'input',
       name: 'prompt',
