@@ -35,6 +35,8 @@ import { parseCommand, showHelpMenu } from '../src/commands.js';
 import { navigateDirectories } from '../src/navigator.js';
 import { showInteractiveMenu } from '../src/menu.js';
 import { runSelfUpdate, crossSpawn } from '../src/updater.js';
+import { manageBranches } from '../src/branches.js';
+import { detectPlatform } from '../src/detector.js';
 
 const program = new Command();
 
@@ -117,6 +119,7 @@ async function showGitControlsMenu() {
       message: 'Select Git action:',
       choices: [
         { name: '✍️  Stage & Commit Wizard (Conventional)', value: 'commit' },
+        { name: '🌿 Git Branch Manager', value: 'branch-manager' },
         { name: '📊 Show Repo Status Dashboard', value: 'status' },
         { name: '🔄 Sync Repo (Pull & Push)', value: 'sync' },
         { name: '📥 Stash Current Changes', value: 'stash' },
@@ -174,6 +177,72 @@ async function handleMenuAction(action) {
     case 'git-controls':
       await showGitControlsMenu();
       break;
+
+    case 'branch-manager':
+      await manageBranches();
+      break;
+
+    case 'run-app': {
+      const p = detectPlatform();
+      if (!p) {
+        console.log(colors.warning('\n⚠️  Could not auto-detect any supported platform/framework in this directory.'));
+        console.log(colors.muted('Supported configurations: Flutter, Tauri, Node.js (npm), Rust (Cargo), Java (Gradle), Go, Python.'));
+      } else {
+        console.log(colors.info(`\nDetected Platform: ${colors.accent(p.platformName)}`));
+        console.log(colors.muted(`Running: ${p.runCommand} ${p.runArgs.join(' ')}\n`));
+        
+        if (process.stdin.isTTY) {
+          process.stdin.pause();
+        }
+        
+        await new Promise((resolve) => {
+          const child = crossSpawn(p.runCommand, p.runArgs, { stdio: 'inherit' });
+          child.on('close', (code) => {
+            if (process.stdin.isTTY) {
+              process.stdin.resume();
+            }
+            if (code === 0) {
+              console.log(colors.success(`\n✔ Process completed successfully.`));
+            } else {
+              console.log(colors.error(`\n✖ Process exited with code ${code}.`));
+            }
+            resolve();
+          });
+        });
+      }
+      break;
+    }
+
+    case 'build-app': {
+      const p = detectPlatform();
+      if (!p) {
+        console.log(colors.warning('\n⚠️  Could not auto-detect any supported platform/framework in this directory.'));
+        console.log(colors.muted('Supported configurations: Flutter, Tauri, Node.js (npm), Rust (Cargo), Java (Gradle), Go, Python.'));
+      } else {
+        console.log(colors.info(`\nDetected Platform: ${colors.accent(p.platformName)}`));
+        console.log(colors.muted(`Building: ${p.buildCommand} ${p.buildArgs.join(' ')}\n`));
+        
+        if (process.stdin.isTTY) {
+          process.stdin.pause();
+        }
+        
+        await new Promise((resolve) => {
+          const child = crossSpawn(p.buildCommand, p.buildArgs, { stdio: 'inherit' });
+          child.on('close', (code) => {
+            if (process.stdin.isTTY) {
+              process.stdin.resume();
+            }
+            if (code === 0) {
+              console.log(colors.success(`\n✔ Build completed successfully.`));
+            } else {
+              console.log(colors.error(`\n✖ Build process exited with code ${code}.`));
+            }
+            resolve();
+          });
+        });
+      }
+      break;
+    }
 
     case 'help':
       await showHelpMenu();
@@ -571,6 +640,21 @@ program
       console.error(colors.error(`Error: ${error.message}`));
       process.exit(1);
     }
+  });
+
+program
+  .command('run')
+  .alias('r')
+  .description('Run the app in this directory (auto-detects framework)')
+  .action(async () => {
+    await handleMenuAction('run-app');
+  });
+
+program
+  .command('build')
+  .description('Build the app in this directory (auto-detects framework)')
+  .action(async () => {
+    await handleMenuAction('build-app');
   });
 
 program.parse(process.argv);
