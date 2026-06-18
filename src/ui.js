@@ -327,7 +327,8 @@ ${diffContent}`;
           { name: 'ci:       CI configuration files and scripts', value: 'ci' },
           { name: 'revert:   Reverts a previous commit', value: 'revert' }
         ],
-        loop: false
+        loop: false,
+        pageSize: process.stdout.rows ? Math.max(15, process.stdout.rows - 8) : 15
       },
       {
         type: 'input',
@@ -388,7 +389,8 @@ ${diffContent}`;
             { name: '✍️  Type a custom branch name...', value: 'custom' }
           ],
           default: currentBranch,
-          loop: false
+          loop: false,
+          pageSize: process.stdout.rows ? Math.max(15, process.stdout.rows - 8) : 15
         }
       ]);
 
