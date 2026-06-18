@@ -44,7 +44,8 @@ const program = new Command();
 
 function runBumper(type) {
   return new Promise((resolve) => {
-    const cmd = 'npx';
+    const isWin = process.platform === 'win32';
+    const cmd = isWin ? 'npx.cmd' : 'npx';
     const args = ['--yes', '-p', 'github:dwaipayanray95/bump-version', 'bump-version'];
     if (type && type !== 'interactive') {
       args.push(type.trim().toLowerCase());
@@ -52,8 +53,8 @@ function runBumper(type) {
     
     console.log(colors.info(`\nRunning bump-version CLI from GitHub...`));
     
-    // Execute using npx to always fetch the latest commit directly from GitHub dynamically (avoids local resolution issues)
-    const child = spawn(cmd, args, { stdio: 'inherit', shell: process.platform === 'win32' });
+    // Execute using npx/npx.cmd to always fetch the latest commit directly from GitHub dynamically (without shell warning)
+    const child = spawn(cmd, args, { stdio: 'inherit' });
     
     child.on('close', (code) => {
       if (code === 0) {
@@ -398,7 +399,8 @@ async function runSelfUpdate(toLatestCommit = false) {
     useSudo = process.platform !== 'win32';
   }
 
-  const cmd = useSudo ? 'sudo' : 'npm';
+  const isWin = process.platform === 'win32';
+  const cmd = useSudo ? 'sudo' : (isWin ? 'npm.cmd' : 'npm');
   const args = useSudo 
     ? ['npm', 'install', '-g', target] 
     : ['install', '-g', target];
@@ -406,7 +408,7 @@ async function runSelfUpdate(toLatestCommit = false) {
   console.log(colors.info(`Running: ${cmd} ${args.join(' ')}`));
   
   return new Promise((resolve) => {
-    const child = spawn(cmd, args, { stdio: 'inherit', shell: process.platform === 'win32' });
+    const child = spawn(cmd, args, { stdio: 'inherit' });
     
     child.on('close', (code) => {
       if (code === 0) {
