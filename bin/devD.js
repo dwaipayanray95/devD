@@ -221,6 +221,9 @@ async function navigateDirectories() {
     }
 
     if (spacePressed) {
+      if (selection && selection !== 'CONFIRM' && selection !== 'UP' && selection !== 'DRIVES') {
+        return path.join(currentDir, selection);
+      }
       return currentDir;
     }
 
@@ -427,6 +430,7 @@ async function showInteractiveMenu(gitActive) {
   const wasRaw = process.stdin.isRaw;
   if (process.stdin.isTTY) {
     process.stdin.setRawMode(true);
+    process.stdin.resume();
   }
   readline.emitKeypressEvents(process.stdin);
   
