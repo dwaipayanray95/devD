@@ -51,7 +51,7 @@ export const colors = {
  */
 export function printBanner() {
   console.clear();
-  const title = `🚀  DEVD COMPANION CLI v${getLocalVersion()}`;
+  const title = `🚀  devD CLI v${getLocalVersion()}`;
   const width = 56;
   const padding = Math.max(0, Math.floor((width - title.length) / 2));
   const line = ' '.repeat(padding) + title + ' '.repeat(width - title.length - padding);
