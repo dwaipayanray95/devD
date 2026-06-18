@@ -1,7 +1,7 @@
 # 🚀 devD CLI (Developer Helper)
 
 [![GitHub Stars](https://img.shields.io/github/stars/dwaipayanray95/devD?style=social)](https://github.com/dwaipayanray95/devD)
-![Visitors](https://komarev.com/ghpvc/?username=dwaipayanray95-devD&color=blueviolet&style=flat-square)
+![Visitors](https://komarev.com/ghpvc/?username=dwaipayanray95-devD&color=blueviolet&style=flat-square&label=Views)
 
 `devD` is an interactive CLI companion that automates Git repository tasks, conventional commits, staging files, stashing, and version bumping. It also integrates with the Gemini API to draft commit messages from diffs or answer coding questions directly inside your terminal.
 

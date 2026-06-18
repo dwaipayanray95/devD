@@ -539,6 +539,7 @@ ${diffContent}`;
           name: 'type',
           message: 'Select the type of change you are committing:',
           choices: [
+            { name: 'custom:   A custom format commit (no prefix/scope)', value: 'custom' },
             { name: 'feat:     A new feature', value: 'feat' },
             { name: 'fix:      A bug fix', value: 'fix' },
             { name: 'docs:     Documentation only changes', value: 'docs' },
@@ -557,7 +558,8 @@ ${diffContent}`;
           type: 'input',
           name: 'scope',
           message: 'What is the scope of this change? (e.g. component/file, press Enter to skip):',
-          filter: val => val.trim().toLowerCase()
+          filter: val => val.trim().toLowerCase(),
+          when: (answers) => answers.type !== 'custom'
         },
         {
           type: 'input',
@@ -573,8 +575,12 @@ ${diffContent}`;
         }
       ]);
 
-      const scopeStr = manualAnswers.scope ? `(${manualAnswers.scope})` : '';
-      commitMessage = `${manualAnswers.type}${scopeStr}: ${manualAnswers.subject}`;
+      if (manualAnswers.type === 'custom') {
+        commitMessage = manualAnswers.subject;
+      } else {
+        const scopeStr = manualAnswers.scope ? `(${manualAnswers.scope})` : '';
+        commitMessage = `${manualAnswers.type}${scopeStr}: ${manualAnswers.subject}`;
+      }
       if (manualAnswers.body) {
         commitMessage += `\n\n${manualAnswers.body}`;
       }
