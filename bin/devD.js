@@ -428,18 +428,11 @@ async function runSelfUpdate(toLatestCommit = false) {
 
 async function pressEnterToContinue() {
   console.log();
-  try {
-    await promptWithEscape([{
-      type: 'input',
-      name: 'continue',
-      message: colors.muted('Press ESC to return to main menu...')
-    }]);
-  } catch (e) {
-    if (e.message === 'ESCAPE_CANCELLED') {
-      return;
-    }
-    throw e;
-  }
+  await inquirer.prompt([{
+    type: 'input',
+    name: 'continue',
+    message: colors.muted('Press Enter to return to main menu...')
+  }]);
 }
 
 // ==========================================
