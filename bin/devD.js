@@ -6,9 +6,9 @@ import chalk from 'chalk';
 import ora from 'ora';
 import { exec } from 'child_process';
 import { promisify } from 'util';
-import { readFileSync } from 'fs';
+import fs, { readFileSync } from 'fs';
 import { fileURLToPath } from 'url';
-import { dirname, join } from 'path';
+import path, { dirname, join } from 'path';
 import { createRequire } from 'module';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -121,86 +121,143 @@ async function ensureGitRepo() {
   return false;
 }
 
-/**
- * Main interactive console menu loop.
- */
-async function runMenuLoop() {
-  printBanner();
-  await checkForUpdates(getLocalVersion());
-  
-  // Guard for Git features
-  const gitActive = await ensureGitRepo();
-  if (!gitActive) {
-    // If not in git and refused to init, run mini-menu for AI/Exit only
-    let answer;
+function getWindowsDrives() {
+  const drives = [];
+  for (let i = 65; i <= 90; i++) {
+    const drive = String.fromCharCode(i) + ':\\';
     try {
-      answer = await promptWithEscape([
+      if (fs.existsSync(drive)) {
+        drives.push(drive);
+      }
+    } catch (e) {}
+  }
+  return drives;
+}
+
+async function navigateDirectories() {
+  let currentDir = process.cwd();
+  const isWin = process.platform === 'win32';
+  
+  while (true) {
+    printBanner();
+    console.log(colors.accent('📁  DIRECTORY NAVIGATOR'));
+    console.log(`   Current Path: ${colors.bright(currentDir)}\n`);
+    console.log(colors.muted('   [Arrows] Navigate  |  [Enter] Open Folder  |  [Space] Select & CD'));
+    console.log(colors.muted('   [Esc] Cancel and return\n'));
+
+    let dirs = [];
+    try {
+      const entries = fs.readdirSync(currentDir, { withFileTypes: true });
+      dirs = entries
+        .filter(entry => entry.isDirectory() && !entry.name.startsWith('.'))
+        .map(entry => entry.name)
+        .sort();
+    } catch (err) {
+      console.log(colors.error(`   Error reading directory: ${err.message}`));
+    }
+
+    const choices = [];
+    
+    // Parent directory option
+    const parentDir = path.dirname(currentDir);
+    if (parentDir !== currentDir) {
+      choices.push({ name: '⬆️  .. (Go Up)', value: 'UP' });
+    } else if (isWin) {
+      choices.push({ name: '💾 Choose Drive', value: 'DRIVES' });
+    }
+
+    dirs.forEach(d => {
+      choices.push({ name: `📁 ${d}`, value: d });
+    });
+
+    choices.unshift({ name: `📌 Select current directory: ${currentDir}`, value: 'CONFIRM' });
+
+    let selection;
+    let spacePressed = false;
+    let escPressed = false;
+
+    const keypressHandler = (ch, key) => {
+      if (key) {
+        if (key.name === 'space') {
+          spacePressed = true;
+          if (uiPrompt && uiPrompt.ui) {
+            uiPrompt.ui.rl.emit('line');
+          }
+        } else if (key.name === 'escape' || key.name === 'esc') {
+          escPressed = true;
+          if (uiPrompt && uiPrompt.ui) {
+            uiPrompt.ui.rl.emit('line');
+          }
+        }
+      }
+    };
+
+    process.stdin.on('keypress', keypressHandler);
+
+    let uiPrompt;
+    try {
+      const promptPromise = inquirer.prompt([
         {
           type: 'list',
-          name: 'action',
-          message: 'No active Git repository. What would you like to do?',
-          choices: [
-            { name: '🤖 Ask Gemini / AI Query', value: 'ai' },
-            { name: '❌ Exit', value: 'exit' }
-          ],
-          loop: false
+          name: 'folder',
+          message: 'Navigate:',
+          choices,
+          loop: false,
+          pageSize: process.stdout.rows ? Math.max(10, process.stdout.rows - 10) : 15
         }
       ]);
-    } catch (error) {
-      if (error.message === 'ESCAPE_CANCELLED') {
-        console.log(colors.success('Goodbye!'));
-        process.exit(0);
-      }
-      throw error;
+      uiPrompt = promptPromise;
+      const answer = await promptPromise;
+      selection = answer.folder;
+    } catch (err) {
+      // Catch prompt interruptions
+    } finally {
+      process.stdin.removeListener('keypress', keypressHandler);
     }
-    
-    if (answer.action === 'ai') {
+
+    if (escPressed) {
+      return null;
+    }
+
+    if (spacePressed) {
+      return currentDir;
+    }
+
+    if (!selection) {
+      return null;
+    }
+
+    if (selection === 'CONFIRM') {
+      return currentDir;
+    }
+
+    if (selection === 'UP') {
+      currentDir = parentDir;
+    } else if (selection === 'DRIVES') {
+      const drives = getWindowsDrives();
+      let driveAnswer;
       try {
-        await runAIInteractive();
-      } catch (e) {
-        if (e.message !== 'ESCAPE_CANCELLED') throw e;
+        driveAnswer = await inquirer.prompt([
+          {
+            type: 'list',
+            name: 'drive',
+            message: 'Select Drive:',
+            choices: drives.map(d => ({ name: d, value: d })),
+            loop: false
+          }
+        ]);
+        currentDir = driveAnswer.drive;
+      } catch (err) {
+        // Handle cancel
       }
-      await pressEnterToContinue();
-      await runMenuLoop();
     } else {
-      console.log(colors.success('Goodbye!'));
-      process.exit(0);
+      currentDir = path.join(currentDir, selection);
     }
-    return;
   }
+}
 
-  // Active Git menu choices
-  let answers;
-  try {
-    answers = await promptWithEscape([
-      {
-        type: 'list',
-        name: 'action',
-        message: 'What would you like to do?',
-        choices: [
-          { name: '📊 Show Repo Status Dashboard', value: 'status' },
-          { name: '✍️  Stage & Commit Wizard (Conventional)', value: 'commit' },
-          { name: '🔄 Sync Repo (Pull & Push)', value: 'sync' },
-          { name: '📥 Stash Current Changes', value: 'stash' },
-          { name: '📤 Pop Last Stash', value: 'stash-pop' },
-          { name: '🚀 Bump Version', value: 'bump' },
-          { name: '🤖 Ask Gemini / AI Query', value: 'ai' },
-          { name: '✨ Update devD CLI', value: 'update' },
-          { name: '❌ Exit', value: 'exit' }
-        ],
-        loop: false,
-        pageSize: process.stdout.rows ? Math.max(15, process.stdout.rows - 8) : 15
-      }
-    ]);
-  } catch (error) {
-    if (error.message === 'ESCAPE_CANCELLED') {
-      console.log(colors.success('Goodbye!'));
-      process.exit(0);
-    }
-    throw error;
-  }
-
-  switch (answers.action) {
+async function handleMenuAction(action) {
+  switch (action) {
     case 'status':
       printBanner();
       await showDashboard();
@@ -342,6 +399,159 @@ async function runMenuLoop() {
 
   await pressEnterToContinue();
   await runMenuLoop();
+}
+
+/**
+ * Main interactive console menu loop.
+ */
+async function runMenuLoop() {
+  printBanner();
+  await checkForUpdates(getLocalVersion());
+  
+  let inputAnswer;
+  try {
+    inputAnswer = await inquirer.prompt([
+      {
+        type: 'input',
+        name: 'cmd',
+        message: 'devD >',
+        suffix: colors.muted(' (Type command/shortcut, dir [path], or press Enter for main menu)')
+      }
+    ]);
+  } catch (error) {
+    console.log(colors.success('Goodbye!'));
+    process.exit(0);
+  }
+
+  const cmdInput = inputAnswer.cmd ? inputAnswer.cmd.trim() : '';
+  if (cmdInput) {
+    if (cmdInput.toLowerCase() === 'dir') {
+      const targetDir = await navigateDirectories();
+      if (targetDir) {
+        process.chdir(targetDir);
+        console.log(colors.success(`\n✔ Changed directory to: ${targetDir}\n`));
+      }
+      await runMenuLoop();
+      return;
+    } else if (cmdInput.toLowerCase().startsWith('dir ')) {
+      const targetPath = cmdInput.slice(4).trim();
+      const resolvedPath = path.resolve(targetPath);
+      if (fs.existsSync(resolvedPath)) {
+        process.chdir(resolvedPath);
+        console.log(colors.success(`\n✔ Changed directory to: ${resolvedPath}\n`));
+      } else {
+        console.log(colors.error(`\n✖ Path does not exist: ${targetPath}\n`));
+        await pressEnterToContinue();
+      }
+      await runMenuLoop();
+      return;
+    }
+    
+    // Parse commands and shortcuts
+    const lowerCmd = cmdInput.toLowerCase();
+    let action = null;
+    if (lowerCmd === 'status' || lowerCmd === 's' || lowerCmd === 'dashboard') action = 'status';
+    else if (lowerCmd === 'commit' || lowerCmd === 'c' || lowerCmd === 'wizard') action = 'commit';
+    else if (lowerCmd === 'sync' || lowerCmd === 'y') action = 'sync';
+    else if (lowerCmd === 'stash') action = 'stash';
+    else if (lowerCmd === 'stash-pop' || lowerCmd === 'pop') action = 'stash-pop';
+    else if (lowerCmd === 'bump' || lowerCmd === 'b') action = 'bump';
+    else if (lowerCmd === 'ai' || lowerCmd === 'a' || lowerCmd === 'gemini') action = 'ai';
+    else if (lowerCmd === 'update' || lowerCmd === 'u') action = 'update';
+    else if (lowerCmd === 'exit' || lowerCmd === 'q' || lowerCmd === 'quit') action = 'exit';
+    
+    if (action) {
+      if (action !== 'ai' && action !== 'update' && action !== 'exit') {
+        const gitActive = await ensureGitRepo();
+        if (!gitActive) {
+          await runMenuLoop();
+          return;
+        }
+      }
+      await handleMenuAction(action);
+      return;
+    } else {
+      console.log(colors.warning(`\nUnknown command/shortcut: "${cmdInput}"`));
+      console.log(colors.muted(`Available commands: status (s), commit (c), sync (y), stash, pop, bump (b), ai (a), update (u), exit (q), dir [path]\n`));
+      await pressEnterToContinue();
+      await runMenuLoop();
+      return;
+    }
+  }
+
+  // Guard for Git features
+  const gitActive = await ensureGitRepo();
+  if (!gitActive) {
+    // If not in git and refused to init, run mini-menu for AI/Exit only
+    let answer;
+    try {
+      answer = await promptWithEscape([
+        {
+          type: 'list',
+          name: 'action',
+          message: 'No active Git repository. What would you like to do?',
+          choices: [
+            { name: '🤖 Ask Gemini / AI Query', value: 'ai' },
+            { name: '❌ Exit', value: 'exit' }
+          ],
+          loop: false
+        }
+      ]);
+    } catch (error) {
+      if (error.message === 'ESCAPE_CANCELLED') {
+        console.log(colors.success('Goodbye!'));
+        process.exit(0);
+      }
+      throw error;
+    }
+    
+    if (answer.action === 'ai') {
+      try {
+        await runAIInteractive();
+      } catch (e) {
+        if (e.message !== 'ESCAPE_CANCELLED') throw e;
+      }
+      await pressEnterToContinue();
+      await runMenuLoop();
+    } else {
+      console.log(colors.success('Goodbye!'));
+      process.exit(0);
+    }
+    return;
+  }
+
+  // Active Git menu choices
+  let answers;
+  try {
+    answers = await promptWithEscape([
+      {
+        type: 'list',
+        name: 'action',
+        message: 'What would you like to do?',
+        choices: [
+          { name: '📊 Show Repo Status Dashboard', value: 'status' },
+          { name: '✍️  Stage & Commit Wizard (Conventional)', value: 'commit' },
+          { name: '🔄 Sync Repo (Pull & Push)', value: 'sync' },
+          { name: '📥 Stash Current Changes', value: 'stash' },
+          { name: '📤 Pop Last Stash', value: 'stash-pop' },
+          { name: '🚀 Bump Version', value: 'bump' },
+          { name: '🤖 Ask Gemini / AI Query', value: 'ai' },
+          { name: '✨ Update devD CLI', value: 'update' },
+          { name: '❌ Exit', value: 'exit' }
+        ],
+        loop: false,
+        pageSize: process.stdout.rows ? Math.max(15, process.stdout.rows - 8) : 15
+      }
+    ]);
+  } catch (error) {
+    if (error.message === 'ESCAPE_CANCELLED') {
+      console.log(colors.success('Goodbye!'));
+      process.exit(0);
+    }
+    throw error;
+  }
+
+  await handleMenuAction(answers.action);
 }
 
 /**
