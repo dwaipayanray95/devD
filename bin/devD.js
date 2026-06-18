@@ -162,6 +162,34 @@ async function handleMenuAction(action) {
       }
       break;
     }
+
+    case 'pull': {
+      printBanner();
+      const pullSpinner = ora(colors.primary('Pulling remote changes...')).start();
+      const pullRes = await pull();
+      pullSpinner.stop();
+      if (pullRes.success) {
+        console.log(colors.success('✔ Pulled remote changes successfully.'));
+      } else {
+        console.log(colors.error('Pull failed.'));
+        await handleGitError(pullRes);
+      }
+      break;
+    }
+
+    case 'push': {
+      printBanner();
+      const pushSpinner = ora(colors.primary('Pushing local changes...')).start();
+      const pushRes = await push();
+      pushSpinner.stop();
+      if (pushRes.success) {
+        console.log(colors.success('✔ Pushed local changes successfully.'));
+      } else {
+        console.log(colors.error('Push failed.'));
+        await handleGitError(pushRes);
+      }
+      break;
+    }
     
     case 'stash': {
       try {
