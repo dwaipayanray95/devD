@@ -6,7 +6,6 @@ export const COMMANDS_HELP = [
   { command: 'commit', shortcuts: ['c', 'wizard'], desc: 'Run conventional commit wizard' },
   { command: 'sync', shortcuts: ['y'], desc: 'Pull remote changes and push local commits' },
   { command: 'pull', shortcuts: [], desc: 'Pull remote changes (git pull --rebase)' },
-  { command: 'push', shortcuts: [], desc: 'Push local commits to remote branch' },
   { command: 'stash', shortcuts: [], desc: 'Save current modifications to stash stack' },
   { command: 'pop', shortcuts: ['stash-pop'], desc: 'Restore/apply the last stashed modifications' },
   { command: 'bump', shortcuts: ['b'], desc: 'Bump package version dynamically using bump-version' },
@@ -26,7 +25,6 @@ export function parseCommand(cmdInput) {
   if (lowerCmd === 'commit' || lowerCmd === 'c' || lowerCmd === 'wizard') return 'commit';
   if (lowerCmd === 'sync' || lowerCmd === 'y') return 'sync';
   if (lowerCmd === 'pull') return 'pull';
-  if (lowerCmd === 'push') return 'push';
   if (lowerCmd === 'stash') return 'stash';
   if (lowerCmd === 'stash-pop' || lowerCmd === 'pop') return 'stash-pop';
   if (lowerCmd === 'bump' || lowerCmd === 'b') return 'bump';

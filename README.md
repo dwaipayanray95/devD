@@ -60,7 +60,6 @@ When inside the interactive `devD >` prompt, you can type the following commands
 | `commit` | `c`, `wizard` | Run Conventional Commit Wizard (auto-stages files, allows manual or AI commit). |
 | `sync` | `y` | Pull remote changes with rebase and push local commits. |
 | `pull` | — | Pull remote changes (git pull --rebase). |
-| `push` | — | Push local commits to remote branch. |
 | `stash` | — | Save current modifications to the stash stack. |
 | `pop` | `stash-pop` | Restore/apply the last stashed modifications. |
 | `bump` | `b` | Bump package version dynamically using `bump-version`. |

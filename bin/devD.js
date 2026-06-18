@@ -177,25 +177,6 @@ async function handleMenuAction(action) {
       }
       break;
     }
-
-    case 'push': {
-      printBanner();
-      const aheadBehind = await getAheadBehind();
-      if (aheadBehind.hasUpstream && aheadBehind.ahead === 0) {
-        console.log(colors.warning('ℹ️  No commits to push. Everything is up-to-date.'));
-        break;
-      }
-      const pushSpinner = ora(colors.primary('Pushing local changes...')).start();
-      const pushRes = await push();
-      pushSpinner.stop();
-      if (pushRes.success) {
-        console.log(colors.success('✔ Pushed local changes successfully.'));
-      } else {
-        console.log(colors.error('Push failed.'));
-        await handleGitError(pushRes);
-      }
-      break;
-    }
     
     case 'stash': {
       try {
