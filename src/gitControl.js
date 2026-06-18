@@ -21,7 +21,8 @@ import {
   stageFiles, 
   unstageFiles, 
   commit, 
-  getLocalBranches 
+  getLocalBranches,
+  getStashes
 } from './git.js';
 
 /**
@@ -228,111 +229,121 @@ export async function manageBranches() {
 
   choices.push({ name: '↩ Cancel', value: 'cancel' });
 
-  const answer = await inquirer.prompt([
-    {
-      type: 'list',
-      name: 'action',
-      message: 'Select action:',
-      choices: choices,
-      loop: false
-    }
-  ]);
-
-  if (answer.action === 'cancel') {
-    return manageBranches();
-  }
-
-  switch (answer.action) {
-    case 'checkout': {
-      console.log(colors.info(`\nChecking out to branch: ${selectedBranch.name}...`));
-      let checkoutName = selectedBranch.name;
-      if (selectedBranch.isRemote && selectedBranch.name.startsWith('origin/')) {
-        checkoutName = selectedBranch.name.replace(/^origin\//, '');
+  try {
+    const answer = await promptWithEscape([
+      {
+        type: 'list',
+        name: 'action',
+        message: 'Select action:',
+        choices: choices,
+        loop: false
       }
-      const res = await runGitCommand(`checkout ${checkoutName}`);
-      if (res.success) {
-        console.log(colors.success(`✔ Checked out to branch "${checkoutName}".`));
-      } else {
-        console.log(colors.error(`✖ Failed to checkout branch: ${res.stderr || res.error}`));
-      }
-      break;
+    ]);
+
+    if (answer.action === 'cancel') {
+      return manageBranches();
     }
 
-    case 'create': {
-      const createAnswer = await inquirer.prompt([
-        {
-          type: 'input',
-          name: 'branchName',
-          message: 'Enter new branch name:',
-          validate: val => val.trim().length > 0 ? true : 'Branch name cannot be empty.'
+    switch (answer.action) {
+      case 'checkout': {
+        console.log(colors.info(`\nChecking out to branch: ${selectedBranch.name}...`));
+        let checkoutName = selectedBranch.name;
+        if (selectedBranch.isRemote && selectedBranch.name.startsWith('origin/')) {
+          checkoutName = selectedBranch.name.replace(/^origin\//, '');
         }
-      ]);
-      const newName = createAnswer.branchName.trim();
-      console.log(colors.info(`\nCreating and checking out to branch "${newName}" starting from "${selectedBranch.name}"...`));
-      const res = await runGitCommand(`checkout -b ${newName} ${selectedBranch.name}`);
-      if (res.success) {
-        console.log(colors.success(`✔ Branch "${newName}" created and checked out successfully.`));
-      } else {
-        console.log(colors.error(`✖ Failed to create branch: ${res.stderr || res.error}`));
-      }
-      break;
-    }
-
-    case 'delete': {
-      const confirmDelete = await inquirer.prompt([
-        {
-          type: 'confirm',
-          name: 'confirm',
-          message: `Are you sure you want to delete branch "${selectedBranch.name}"?`,
-          default: false
+        const res = await runGitCommand(`checkout ${checkoutName}`);
+        if (res.success) {
+          console.log(colors.success(`✔ Checked out to branch "${checkoutName}".`));
+        } else {
+          console.log(colors.error(`✖ Failed to checkout branch: ${res.stderr || res.error}`));
         }
-      ]);
-      if (confirmDelete.confirm) {
-        console.log(colors.info(`\nDeleting branch "${selectedBranch.name}"...`));
-        let res = await runGitCommand(`branch -d ${selectedBranch.name}`);
-        if (!res.success) {
-          const forceDelete = await inquirer.prompt([
-            {
-              type: 'confirm',
-              name: 'force',
-              message: `Standard delete failed (branch might not be merged). Force delete?`,
-              default: false
+        break;
+      }
+
+      case 'create': {
+        const createAnswer = await promptWithEscape([
+          {
+            type: 'input',
+            name: 'branchName',
+            message: 'Enter new branch name:',
+            validate: val => val.trim().length > 0 ? true : 'Branch name cannot be empty.'
+          }
+        ]);
+        const newName = createAnswer.branchName.trim();
+        console.log(colors.info(`\nCreating and checking out to branch "${newName}" starting from "${selectedBranch.name}"...`));
+        const res = await runGitCommand(`checkout -b ${newName} ${selectedBranch.name}`);
+        if (res.success) {
+          console.log(colors.success(`✔ Branch "${newName}" created and checked out successfully.`));
+        } else {
+          console.log(colors.error(`✖ Failed to create branch: ${res.stderr || res.error}`));
+        }
+        break;
+      }
+
+      case 'delete': {
+        const confirmDelete = await promptWithEscape([
+          {
+            type: 'confirm',
+            name: 'confirm',
+            message: `Are you sure you want to delete branch "${selectedBranch.name}"?`,
+            default: false
+          }
+        ]);
+        if (confirmDelete.confirm) {
+          console.log(colors.info(`\nDeleting branch "${selectedBranch.name}"...`));
+          let res = await runGitCommand(`branch -d ${selectedBranch.name}`);
+          if (!res.success) {
+            const forceDelete = await promptWithEscape([
+              {
+                type: 'confirm',
+                name: 'force',
+                message: `Standard delete failed (branch might not be merged). Force delete?`,
+                default: false
+              }
+            ]);
+            if (forceDelete.force) {
+              res = await runGitCommand(`branch -D ${selectedBranch.name}`);
             }
-          ]);
-          if (forceDelete.force) {
-            res = await runGitCommand(`branch -D ${selectedBranch.name}`);
+          }
+          if (res.success) {
+            console.log(colors.success(`✔ Deleted branch "${selectedBranch.name}".`));
+          } else {
+            console.log(colors.error(`✖ Failed to delete branch: ${res.stderr || res.error}`));
           }
         }
+        break;
+      }
+
+      case 'merge': {
+        console.log(colors.info(`\nMerging branch "${selectedBranch.name}" into "${currentBranchName}"...`));
+        const res = await runGitCommand(`merge ${selectedBranch.name}`);
         if (res.success) {
-          console.log(colors.success(`✔ Deleted branch "${selectedBranch.name}".`));
+          console.log(colors.success(`✔ Merged successfully.`));
         } else {
-          console.log(colors.error(`✖ Failed to delete branch: ${res.stderr || res.error}`));
+          console.log(colors.error(`✖ Merge failed / has conflicts: ${res.stderr || res.error}`));
         }
+        break;
       }
-      break;
-    }
 
-    case 'merge': {
-      console.log(colors.info(`\nMerging branch "${selectedBranch.name}" into "${currentBranchName}"...`));
-      const res = await runGitCommand(`merge ${selectedBranch.name}`);
-      if (res.success) {
-        console.log(colors.success(`✔ Merged successfully.`));
-      } else {
-        console.log(colors.error(`✖ Merge failed / has conflicts: ${res.stderr || res.error}`));
+      case 'rebase': {
+        console.log(colors.info(`\nRebasing current branch "${currentBranchName}" onto "${selectedBranch.name}"...`));
+        const res = await runGitCommand(`rebase ${selectedBranch.name}`);
+        if (res.success) {
+          console.log(colors.success(`✔ Rebased successfully.`));
+        } else {
+          console.log(colors.error(`✖ Rebase failed / has conflicts: ${res.stderr || res.error}`));
+        }
+        break;
       }
-      break;
     }
-
-    case 'rebase': {
-      console.log(colors.info(`\nRebasing current branch "${currentBranchName}" onto "${selectedBranch.name}"...`));
-      const res = await runGitCommand(`rebase ${selectedBranch.name}`);
-      if (res.success) {
-        console.log(colors.success(`✔ Rebased successfully.`));
-      } else {
-        console.log(colors.error(`✖ Rebase failed / has conflicts: ${res.stderr || res.error}`));
-      }
-      break;
+  } catch (error) {
+    if (error.message === 'ESCAPE_CANCELLED') {
+      console.log(colors.info('\nAction cancelled. Returning to branch list...'));
+      // Wait a moment so the console message is readable, then loop back
+      await new Promise(r => setTimeout(r, 800));
+      return manageBranches();
     }
+    throw error;
   }
 }
 
@@ -730,28 +741,35 @@ export async function showGitControlsMenu(onActionCallback) {
   printBanner();
   console.log(colors.accent('⚙️  GIT CONTROLS MENU\n'));
   
-  const answer = await inquirer.prompt([
-    {
-      type: 'list',
-      name: 'action',
-      message: 'Select Git action:',
-      choices: [
-        { name: '✍️  Stage & Commit Wizard (Conventional)', value: 'commit' },
-        { name: '🌿 Git Branch Manager', value: 'branch-manager' },
-        { name: '📊 Show Repo Status Dashboard', value: 'status' },
-        { name: '🔄 Sync Repo (Pull & Push)', value: 'sync' },
-        { name: '📥 Stash Current Changes', value: 'stash' },
-        { name: '📤 Pop Last Stash', value: 'stash-pop' },
-        { name: '↩ Back to main menu', value: 'back' }
-      ],
-      loop: false,
-      pageSize: process.stdout.rows ? Math.max(10, process.stdout.rows - 10) : 15
-    }
-  ]);
+  try {
+    const answer = await promptWithEscape([
+      {
+        type: 'list',
+        name: 'action',
+        message: 'Select Git action:',
+        choices: [
+          { name: '✍️  Stage & Commit Wizard (Conventional)', value: 'commit' },
+          { name: '🌿 Git Branch Manager', value: 'branch-manager' },
+          { name: '📊 Show Repo Status Dashboard', value: 'status' },
+          { name: '🔄 Sync Repo (Pull & Push)', value: 'sync' },
+          { name: '📥 Stash Current Changes', value: 'stash' },
+          { name: '📤 Pop Last Stash', value: 'stash-pop' },
+          { name: '↩ Back to main menu', value: 'back' }
+        ],
+        loop: false,
+        pageSize: process.stdout.rows ? Math.max(10, process.stdout.rows - 10) : 15
+      }
+    ]);
 
-  if (answer.action === 'back') {
-    return 'back';
+    if (answer.action === 'back') {
+      return 'back';
+    }
+    
+    await onActionCallback(answer.action);
+  } catch (error) {
+    if (error.message === 'ESCAPE_CANCELLED') {
+      return 'back';
+    }
+    throw error;
   }
-  
-  await onActionCallback(answer.action);
 }
