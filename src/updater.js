@@ -89,3 +89,12 @@ export async function runSelfUpdate(toLatestCommit = false) {
     });
   });
 }
+
+export function openUrl(url) {
+  const startCmd = process.platform === 'darwin' ? 'open' : process.platform === 'win32' ? 'start' : 'xdg-open';
+  if (process.platform === 'win32') {
+    exec(`start "" "${url}"`);
+  } else {
+    exec(`${startCmd} "${url}"`);
+  }
+}

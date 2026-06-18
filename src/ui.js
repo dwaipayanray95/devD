@@ -1,9 +1,9 @@
 import inquirer from 'inquirer';
 import chalk from 'chalk';
 import ora from 'ora';
-import { readFileSync } from 'fs';
+import fs, { readFileSync } from 'fs';
 import { fileURLToPath } from 'url';
-import { dirname, join } from 'path';
+import path, { dirname, join } from 'path';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -37,6 +37,44 @@ export const colors = {
 /**
  * Renders a premium console banner.
  */
+export function getProjectInfo() {
+  const cwd = process.cwd();
+  const folderName = path.basename(cwd);
+  
+  // 1. package.json (Node.js)
+  try {
+    const pkgPath = path.join(cwd, 'package.json');
+    if (fs.existsSync(pkgPath)) {
+      const pkg = JSON.parse(fs.readFileSync(pkgPath, 'utf8'));
+      if (pkg.name) {
+        const verStr = pkg.version ? ` v${pkg.version}` : '';
+        return `${pkg.name}${verStr}`;
+      }
+    }
+  } catch (e) {
+    // Ignore
+  }
+
+  // 2. pubspec.yaml (Flutter)
+  try {
+    const pubspecPath = path.join(cwd, 'pubspec.yaml');
+    if (fs.existsSync(pubspecPath)) {
+      const content = fs.readFileSync(pubspecPath, 'utf8');
+      const nameMatch = content.match(/^name:\s*(.+)$/m);
+      const versionMatch = content.match(/^version:\s*(.+)$/m);
+      if (nameMatch) {
+        const name = nameMatch[1].trim();
+        const version = versionMatch ? versionMatch[1].trim() : '';
+        return version ? `${name} v${version}` : name;
+      }
+    }
+  } catch (e) {
+    // Ignore
+  }
+
+  return folderName;
+}
+
 export function printBanner() {
   console.clear();
   const title = `🚀  devD CLI v${getLocalVersion()}`;
@@ -48,6 +86,7 @@ export function printBanner() {
   console.log(colors.primary('│') + colors.bright(line) + colors.primary('│'));
   console.log(colors.primary('│') + colors.muted('             Accelerating Developer Workflows           ') + colors.primary('│'));
   console.log(colors.primary('└────────────────────────────────────────────────────────┘'));
+  console.log(`${colors.accent('📂 Active Workspace:')} ${colors.bright(getProjectInfo())}`);
   console.log();
 }
 
