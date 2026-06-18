@@ -53,7 +53,7 @@ function runBumper(type) {
     console.log(colors.info(`\nRunning bump-version CLI from GitHub...`));
     
     // Execute using npx to always fetch the latest commit directly from GitHub dynamically (avoids local resolution issues)
-    const child = spawn(cmd, args, { stdio: 'inherit', shell: true });
+    const child = spawn(cmd, args, { stdio: 'inherit', shell: process.platform === 'win32' });
     
     child.on('close', (code) => {
       if (code === 0) {
@@ -406,7 +406,7 @@ async function runSelfUpdate(toLatestCommit = false) {
   console.log(colors.info(`Running: ${cmd} ${args.join(' ')}`));
   
   return new Promise((resolve) => {
-    const child = spawn(cmd, args, { stdio: 'inherit', shell: true });
+    const child = spawn(cmd, args, { stdio: 'inherit', shell: process.platform === 'win32' });
     
     child.on('close', (code) => {
       if (code === 0) {
