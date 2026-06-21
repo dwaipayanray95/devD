@@ -74,13 +74,13 @@ export async function runSelfUpdate(toLatestCommit = false) {
         process.stdin.resume();
       }
       if (code === 0) {
-        console.log(colors.success('✔ devD has been updated successfully! Please restart devD to use the new version.'));
+        console.log(colors.success('✔ devD has been updated successfully! Restarting automatically...\n'));
         process.stdout.write('\u001B[?25h');
-        if (process.stdin.isTTY) {
-          process.stdin.setRawMode(false);
-          process.stdin.pause();
-        }
-        process.exit(0);
+        
+        const restartChild = spawn(process.argv[0], process.argv.slice(1), { stdio: 'inherit' });
+        restartChild.on('close', (restartCode) => {
+          process.exit(restartCode);
+        });
       } else {
         console.log(colors.error(`✖ Update failed with exit code ${code}.`));
         resolve();
