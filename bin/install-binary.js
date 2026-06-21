@@ -4,6 +4,7 @@ import path from 'path';
 import https from 'https';
 import { fileURLToPath } from 'url';
 import { dirname } from 'path';
+import { execSync } from 'child_process';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -68,9 +69,19 @@ function download(url, dest, callback) {
 
 download(downloadUrl, targetPath, (err) => {
   if (err) {
-    console.error(`\n✖ Failed to download pre-compiled binary: ${err.message}`);
-    console.error('Please make sure you have internet access and that the release exists on GitHub.');
-    process.exit(1);
+    console.warn(`\n⚠️  Could not download pre-compiled binary: ${err.message}`);
+    console.log('Attempting to compile devD locally from source using Go...');
+    
+    try {
+      execSync('go build -o devd main.go', { stdio: 'inherit', cwd: path.join(__dirname, '..') });
+      console.log('✔ devD successfully compiled from source!');
+      process.exit(0);
+    } catch (buildErr) {
+      console.error(`\n✖ Local compilation failed: ${buildErr.message}`);
+      console.error('To install devD, please install Go locally or make sure the release version is published on GitHub.');
+      process.exit(1);
+    }
+    return;
   }
 
   // Make it executable
