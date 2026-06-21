@@ -757,6 +757,7 @@ export async function showGitControlsMenu(onActionCallback) {
           { name: '✍️  Stage & Commit Wizard (Conventional)', value: 'commit' },
           { name: '🌿 Git Branch Manager', value: 'branch-manager' },
           { name: '🏷️  Create & Push Release Tag', value: 'tag' },
+          { name: '🚀 Create GitHub Release', value: 'release' },
           { name: '📊 Show Repo Status Dashboard', value: 'status' },
           { name: '🔄 Sync Repo (Pull & Push)', value: 'sync' },
           { name: '📥 Stash Current Changes', value: 'stash' },
@@ -838,6 +839,144 @@ export async function createGitTag() {
   } catch (error) {
     if (error.message === 'ESCAPE_CANCELLED') {
       console.log(colors.info('\nTagging cancelled.'));
+    } else {
+      throw error;
+    }
+  }
+}
+
+/**
+ * Parse owner and repo from origin remote URL.
+ */
+export async function getGitHubRepoDetails() {
+  const res = await runGitCommand('remote get-url origin');
+  if (!res.success || !res.stdout) return null;
+  const url = res.stdout.trim();
+  const match = url.match(/github\.com[:/]([^/]+)\/([^.]+)(?:\.git)?/);
+  if (match) {
+    return {
+      owner: match[1],
+      repo: match[2].replace(/\.git$/, '')
+    };
+  }
+  return null;
+}
+
+/**
+ * Interactive GitHub Release creation wizard.
+ */
+export async function createGitHubRelease() {
+  try {
+    printBanner();
+    console.log(colors.accent('🚀 CREATE GITHUB RELEASE\n'));
+
+    const repoInfo = await getGitHubRepoDetails();
+    if (!repoInfo) {
+      console.log(colors.error('✖ Could not resolve GitHub repository details from git remote origin URL.'));
+      console.log(colors.muted('Ensure your remote origin is set to a GitHub URL.'));
+      return;
+    }
+
+    const currentAheadBehind = await getAheadBehind();
+    const currentBranch = currentAheadBehind.branch;
+
+    const answers = await promptWithEscape([
+      {
+        type: 'input',
+        name: 'tagName',
+        message: 'Enter tag name (e.g. v1.0.0):',
+        validate: val => val.trim().length > 0 ? true : 'Tag name is required.'
+      },
+      {
+        type: 'input',
+        name: 'title',
+        message: 'Enter release title:',
+        default: (answers) => `Release ${answers.tagName}`
+      },
+      {
+        type: 'input',
+        name: 'targetBranch',
+        message: 'Enter target branch or commit SHA:',
+        default: currentBranch
+      },
+      {
+        type: 'input',
+        name: 'body',
+        message: 'Enter release notes / description (optional):',
+        filter: val => val.trim()
+      },
+      {
+        type: 'confirm',
+        name: 'draft',
+        message: 'Is this a draft release?',
+        default: false
+      },
+      {
+        type: 'confirm',
+        name: 'prerelease',
+        message: 'Is this a pre-release (beta/alpha)?',
+        default: false
+      }
+    ]);
+
+    let token = process.env.GITHUB_TOKEN || process.env.GH_TOKEN;
+    if (!token) {
+      console.log(colors.warning('\n⚠️  No GITHUB_TOKEN or GH_TOKEN found in environment variables.'));
+      const tokenAnswer = await promptWithEscape([
+        {
+          type: 'password',
+          name: 'token',
+          message: 'Paste your GitHub Personal Access Token (requires repo scope):',
+          mask: '*',
+          validate: val => val.trim().length > 0 ? true : 'Token is required.'
+        }
+      ]);
+      token = tokenAnswer.token.trim();
+    }
+
+    const spinner = ora(colors.primary('Creating GitHub Release...')).start();
+    
+    try {
+      const url = `https://api.github.com/repos/${repoInfo.owner}/${repoInfo.repo}/releases`;
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Accept': 'application/vnd.github+json',
+          'Authorization': `Bearer ${token}`,
+          'X-GitHub-Api-Version': '2022-11-28',
+          'User-Agent': 'devD-CLI',
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          tag_name: answers.tagName.trim(),
+          target_commitish: answers.targetBranch.trim(),
+          name: answers.title.trim(),
+          body: answers.body || '',
+          draft: answers.draft,
+          prerelease: answers.prerelease
+        })
+      });
+
+      const data = await response.json();
+      spinner.stop();
+
+      if (response.ok) {
+        console.log(colors.success(`\n✔ GitHub Release created successfully!`));
+        console.log(`   URL: ${colors.info(data.html_url)}`);
+      } else {
+        const errorMsg = data.message || 'Unknown GitHub API error';
+        console.log(colors.error(`\n✖ GitHub API returned error: ${errorMsg}`));
+        if (data.errors) {
+          data.errors.forEach(e => console.log(colors.muted(`   ↳ ${e.resource}: ${e.code} (${e.field || ''})`)));
+        }
+      }
+    } catch (apiErr) {
+      spinner.stop();
+      console.log(colors.error(`\n✖ Failed to connect to GitHub API: ${apiErr.message}`));
+    }
+  } catch (error) {
+    if (error.message === 'ESCAPE_CANCELLED') {
+      console.log(colors.info('\nRelease creation cancelled.'));
     } else {
       throw error;
     }
