@@ -20,6 +20,7 @@ export async function showInteractiveMenu(gitActive) {
 
   let inputBuffer = '';
   let selectedIndex = 0;
+  let escPressedOnce = false;
   
   const wasRaw = process.stdin.isRaw;
   if (process.stdin.isTTY) {
@@ -42,7 +43,11 @@ export async function showInteractiveMenu(gitActive) {
     console.log(colors.accent('⌨️  COMMAND / SHORTCUT'));
     console.log(`   devD > ${colors.bright(buffer)}${colors.muted('_')}`);
     console.log();
-    console.log(colors.muted('   [Arrows] Navigate menu  |  [Type] Custom command / dir path  |  [Enter] Confirm'));
+    if (escPressedOnce) {
+      console.log(colors.warning('   ⚠️  Press Escape again to quit / exit devD companion'));
+    } else {
+      console.log(colors.muted('   [Arrows] Navigate menu  |  [Type] Custom command / dir path  |  [Enter] Confirm'));
+    }
   };
 
   renderUI(inputBuffer, selectedIndex);
@@ -55,6 +60,20 @@ export async function showInteractiveMenu(gitActive) {
           process.exit(0);
         }
         
+        if (key.name === 'escape' || key.name === 'esc') {
+          if (escPressedOnce) {
+            cleanup();
+            resolve({ type: 'menu', value: 'exit' });
+          } else {
+            escPressedOnce = true;
+            renderUI(inputBuffer, selectedIndex);
+          }
+          return;
+        }
+
+        // For any other key, reset the escape confirmation state
+        escPressedOnce = false;
+
         if (key.name === 'up') {
           selectedIndex = (selectedIndex - 1 + items.length) % items.length;
           renderUI(inputBuffer, selectedIndex);
@@ -68,9 +87,6 @@ export async function showInteractiveMenu(gitActive) {
           } else {
             resolve({ type: 'menu', value: items[selectedIndex].value });
           }
-        } else if (key.name === 'escape' || key.name === 'esc') {
-          cleanup();
-          resolve({ type: 'menu', value: 'exit' });
         } else if (key.name === 'backspace') {
           inputBuffer = inputBuffer.slice(0, -1);
           renderUI(inputBuffer, selectedIndex);
