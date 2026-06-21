@@ -1,0 +1,308 @@
+package cmd
+
+import (
+	"fmt"
+	"os"
+	"os/exec"
+	"strings"
+
+	tea "github.com/charmbracelet/bubbletea"
+	"github.com/spf13/cobra"
+
+	"github.com/dwaipayanray95/devD/internal/detector"
+	"github.com/dwaipayanray95/devD/internal/gemini"
+	"github.com/dwaipayanray95/devD/internal/git"
+	"github.com/dwaipayanray95/devD/internal/logger"
+	"github.com/dwaipayanray95/devD/internal/ui"
+)
+
+var Version = "0.3.43"
+
+var RootCmd = &cobra.Command{
+	Use:   "devd",
+	Short: "devD is a developer companion CLI tool for Git & Version Bumping workflow automation.",
+	Run: func(cmd *cobra.Command, args []string) {
+		RunMenuLoop()
+	},
+}
+
+func Execute(ver string) {
+	Version = ver
+	if err := RootCmd.Execute(); err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+	}
+}
+
+func RunMenuLoop() {
+	for {
+		gitActive := git.IsGitRepository()
+		
+		m := ui.NewMenuModel(Version, gitActive)
+		p := tea.NewProgram(m)
+		
+		finalModel, err := p.Run()
+		if err != nil {
+			fmt.Printf("Alas, TUI error: %v\n", err)
+			os.Exit(1)
+		}
+
+		menuModel, ok := finalModel.(ui.MenuModel)
+		if !ok {
+			os.Exit(1)
+		}
+
+		if menuModel.ChosenType == "input" {
+			action := ParseCommand(menuModel.ChosenValue)
+			if action != "" {
+				if IsGitAction(action) && !EnsureGitRepo() {
+					continue
+				}
+				HandleMenuAction(action)
+			} else {
+				fmt.Printf("\nUnknown command/shortcut: \"%s\"\n", menuModel.ChosenValue)
+				ui.PressEnterToContinue()
+			}
+		} else {
+			action := menuModel.ChosenValue
+			if IsGitAction(action) && !EnsureGitRepo() {
+				continue
+			}
+			HandleMenuAction(action)
+		}
+	}
+}
+
+func ParseCommand(cmdInput string) string {
+	lowerCmd := strings.TrimSpace(strings.ToLower(cmdInput))
+	switch lowerCmd {
+	case "run", "dev":
+		return "run-app"
+	case "build":
+		return "build-app"
+	case "status", "s", "dashboard":
+		return "status"
+	case "commit", "c", "wizard":
+		return "commit"
+	case "sync", "y":
+		return "sync"
+	case "pull":
+		return "pull"
+	case "stash":
+		return "stash"
+	case "stash-pop", "pop":
+		return "stash-pop"
+	case "bump", "b":
+		return "bump"
+	case "tag", "t":
+		return "tag"
+	case "release", "rel":
+		return "release"
+	case "ai", "a", "gemini":
+		return "ai"
+	case "update", "u":
+		return "update"
+	case "help", "h", "?":
+		return "help"
+	case "restart", "r":
+		return "restart"
+	case "exit", "q", "quit":
+		return "exit"
+	}
+	return ""
+}
+
+func IsGitAction(action string) bool {
+	gitActions := map[string]bool{
+		"git-controls":   true,
+		"branch-manager": true,
+		"commit":         true,
+		"sync":           true,
+		"pull":           true,
+		"stash":          true,
+		"stash-pop":      true,
+		"status":         true,
+		"bump":           true,
+		"tag":            true,
+		"release":        true,
+	}
+	return gitActions[action]
+}
+
+func EnsureGitRepo() bool {
+	if git.IsGitRepository() {
+		return true
+	}
+	fmt.Println(ui.Warning.Render("⚠️  Not inside a Git repository. Cannot execute Git actions."))
+	ui.PressEnterToContinue()
+	return false
+}
+
+func HandleMenuAction(action string) {
+	switch action {
+	case "exit":
+		fmt.Println(ui.Success.Render("\nGoodbye!"))
+		os.Exit(0)
+	case "status":
+		ui.PrintBanner(Version)
+		res := git.RunGitCommand([]string{"status"})
+		fmt.Println(res.Stdout)
+		ui.PressEnterToContinue()
+	case "sync":
+		ui.PrintBanner(Version)
+		fmt.Println(ui.Info.Render("Syncing... pulling remote changes..."))
+		pullRes := git.Pull()
+		if !pullRes.Success {
+			fmt.Println(ui.Error.Render("Pull failed: " + pullRes.Stderr))
+			ui.PressEnterToContinue()
+			return
+		}
+		fmt.Println(ui.Info.Render("Pushing local changes..."))
+		pushRes := git.Push()
+		if !pushRes.Success {
+			fmt.Println(ui.Error.Render("Push failed: " + pushRes.Stderr))
+		} else {
+			fmt.Println(ui.Success.Render("✔ Repository synchronized successfully."))
+		}
+		ui.PressEnterToContinue()
+	case "pull":
+		ui.PrintBanner(Version)
+		res := git.Pull()
+		if res.Success {
+			fmt.Println(ui.Success.Render("✔ Pulled remote changes successfully."))
+		} else {
+			fmt.Println(ui.Error.Render("Pull failed: " + res.Stderr))
+		}
+		ui.PressEnterToContinue()
+	case "stash":
+		ui.PrintBanner(Version)
+		fmt.Println("Stashing changes...")
+		res := git.StashSave("")
+		if res.Success {
+			fmt.Println(ui.Success.Render("✔ Stashed changes successfully."))
+		} else {
+			fmt.Println(ui.Error.Render("Failed: " + res.Stderr))
+		}
+		ui.PressEnterToContinue()
+	case "stash-pop":
+		ui.PrintBanner(Version)
+		res := git.StashPop()
+		if res.Success {
+			fmt.Println(ui.Success.Render("✔ Restored stashed changes."))
+		} else {
+			fmt.Println(ui.Error.Render("Failed: " + res.Stderr))
+		}
+		ui.PressEnterToContinue()
+	case "commit":
+		git.RunCommitWizard()
+	case "branch-manager":
+		git.ManageBranches()
+	case "tag":
+		git.CreateGitTag()
+	case "release":
+		git.CreateGitHubRelease()
+	case "git-controls":
+		for {
+			ui.PrintBanner(Version)
+			fmt.Println(ui.Accent.Render("  │  Git Controls"))
+			fmt.Println()
+			choices := []string{
+				"✍️  Stage & Commit Wizard (Conventional)",
+				"🌿 Git Branch Manager",
+				"🏷️  Create & Push Release Tag",
+				"🚀 Create GitHub Release",
+				"📊 Show Repo Status Dashboard",
+				"🔄 Sync Repo (Pull & Push)",
+				"📥 Stash Current Changes",
+				"📤 Pop Last Stash",
+				"↩ Back to main menu",
+			}
+			chosen, err := ui.PromptSelect("Select Git action:", choices)
+			if err != nil || strings.Contains(chosen, "Back") || strings.Contains(chosen, "↩") {
+				break
+			}
+			switch {
+			case strings.Contains(chosen, "Commit"):
+				git.RunCommitWizard()
+			case strings.Contains(chosen, "Branch"):
+				git.ManageBranches()
+			case strings.Contains(chosen, "Tag"):
+				git.CreateGitTag()
+			case strings.Contains(chosen, "Release"):
+				git.CreateGitHubRelease()
+			case strings.Contains(chosen, "Status"):
+				HandleMenuAction("status")
+			case strings.Contains(chosen, "Sync"):
+				HandleMenuAction("sync")
+			case strings.Contains(chosen, "Stash Current"):
+				HandleMenuAction("stash")
+			case strings.Contains(chosen, "Pop"):
+				HandleMenuAction("stash-pop")
+			}
+		}
+	case "bump":
+		ui.PrintBanner(Version)
+		fmt.Println("Running version bumper...")
+		cmd := exec.Command("npm", "run", "bump-version")
+		cmd.Stdout = os.Stdout
+		cmd.Stderr = os.Stderr
+		cmd.Stdin = os.Stdin
+		_ = cmd.Run()
+		ui.PressEnterToContinue()
+	case "ai":
+		ui.PrintBanner(Version)
+		fmt.Println(ui.Accent.Render("  │  Gemini AI Assistant"))
+		fmt.Println()
+		prompt, err := ui.PromptInput("Ask Gemini anything:", "")
+		if err == nil && prompt != "" {
+			fmt.Println("\nThinking...")
+			resp, err := gemini.AskGemini(prompt)
+			if err != nil {
+				fmt.Println(ui.Error.Render("Error: " + err.Error()))
+			} else {
+				fmt.Println("\n" + ui.Bright.Render("Response:") + "\n" + resp)
+			}
+			ui.PressEnterToContinue()
+		}
+	case "run-app":
+		ui.PrintBanner(Version)
+		pInfo := detector.DetectPlatform()
+		if pInfo == nil {
+			fmt.Println(ui.Warning.Render("Could not auto-detect any supported platform in this folder."))
+			ui.PressEnterToContinue()
+			return
+		}
+		fmt.Printf(ui.Info.Render("Detected Platform: %s\n"), pInfo.PlatformName)
+		fmt.Printf(ui.Muted.Render("Running: %s %s\n\n"), pInfo.RunCommand, strings.Join(pInfo.RunArgs, " "))
+		
+		cmd := exec.Command(pInfo.RunCommand, pInfo.RunArgs...)
+		cmd.Stdout = os.Stdout
+		cmd.Stderr = os.Stderr
+		cmd.Stdin = os.Stdin
+		_ = cmd.Run()
+		ui.PressEnterToContinue()
+	case "build-app":
+		ui.PrintBanner(Version)
+		pInfo := detector.DetectPlatform()
+		if pInfo == nil {
+			fmt.Println(ui.Warning.Render("Could not auto-detect any supported platform in this folder."))
+			ui.PressEnterToContinue()
+			return
+		}
+		fmt.Printf(ui.Info.Render("Detected Platform: %s\n"), pInfo.PlatformName)
+		fmt.Printf(ui.Muted.Render("Building: %s %s\n\n"), pInfo.BuildCommand, strings.Join(pInfo.BuildArgs, " "))
+		
+		cmd := exec.Command(pInfo.BuildCommand, pInfo.BuildArgs...)
+		cmd.Stdout = os.Stdout
+		cmd.Stderr = os.Stderr
+		cmd.Stdin = os.Stdin
+		_ = cmd.Run()
+		ui.PressEnterToContinue()
+	case "settings":
+		ShowSettingsMenu()
+	case "logs":
+		logger.ManageLogsMenu("")
+	case "restart":
+		RestartCLI()
+	}
+}
