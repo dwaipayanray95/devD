@@ -559,34 +559,39 @@ async function handleMenuAction(action) {
   }
 }
 
+let hasCheckedForUpdates = false;
+
 async function runMenuLoop() {
   printBanner();
   
-  try {
-    const update = await checkForUpdates(getLocalVersion());
-    if (update) {
-      if (update.type === 'release') {
-        console.log(colors.warning(`✨ A new version of devD is available: v${update.version}`));
-      } else {
-        console.log(colors.warning(`✨ A new commit update is available on main branch (hash: ${update.version})`));
-      }
-      
-      const answer = await inquirer.prompt([
-        {
-          type: 'confirm',
-          name: 'autoUpdate',
-          message: 'Would you like to download and install the update now?',
-          default: true
+  if (!hasCheckedForUpdates) {
+    hasCheckedForUpdates = true;
+    try {
+      const update = await checkForUpdates(getLocalVersion());
+      if (update) {
+        if (update.type === 'release') {
+          console.log(colors.warning(`✨ A new version of devD is available: v${update.version}`));
+        } else {
+          console.log(colors.warning(`✨ A new commit update is available on main branch (hash: ${update.version})`));
         }
-      ]);
-      if (answer.autoUpdate) {
-        await runSelfUpdate(update.type === 'commit');
-        return;
+        
+        const answer = await inquirer.prompt([
+          {
+            type: 'confirm',
+            name: 'autoUpdate',
+            message: 'Would you like to download and install the update now?',
+            default: true
+          }
+        ]);
+        if (answer.autoUpdate) {
+          await runSelfUpdate(update.type === 'commit');
+          return;
+        }
+        console.log();
       }
-      console.log();
+    } catch (err) {
+      // Ignore
     }
-  } catch (err) {
-    // Ignore
   }
   
   const gitActive = await isGitRepository();
