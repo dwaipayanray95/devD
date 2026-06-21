@@ -58,6 +58,9 @@ export async function navigateDirectories() {
     let spacePressed = false;
     let escPressed = false;
 
+    let searchBuffer = '';
+    let searchTimeout = null;
+
     const keypressHandler = (ch, key) => {
       if (key) {
         if (key.name === 'space') {
@@ -70,43 +73,42 @@ export async function navigateDirectories() {
           if (uiPrompt && uiPrompt.ui) {
             uiPrompt.ui.rl.emit('line');
           }
-        } else if (key.sequence && key.sequence.length === 1 && /^[a-zA-Z]$/.test(key.sequence)) {
-          const letter = key.sequence.toLowerCase();
+        } else if (key.sequence && key.sequence.length === 1 && /^[a-zA-Z0-9_\-]$/.test(key.sequence)) {
+          const char = key.sequence;
+          if (searchTimeout) {
+            clearTimeout(searchTimeout);
+          }
+          searchBuffer += char;
+          searchTimeout = setTimeout(() => {
+            searchBuffer = '';
+          }, 1000);
+
           const activePrompt = uiPrompt?.ui?.activePrompt;
           if (activePrompt) {
-            const matchingIndices = [];
-            choices.forEach((choice, idx) => {
+            const query = searchBuffer.toLowerCase();
+            const matchIdx = choices.findIndex(choice => {
               if (choice.value && 
                   choice.value !== 'UP' && 
                   choice.value !== 'CONFIRM' && 
                   choice.value !== 'DRIVES') {
-                const firstChar = choice.value.charAt(0).toLowerCase();
-                if (firstChar === letter) {
-                  matchingIndices.push(idx);
-                }
+                return choice.value.toLowerCase().startsWith(query);
               }
+              return false;
             });
 
-            if (matchingIndices.length > 0) {
-              const currentIdx = typeof activePrompt.selected === 'number' 
-                ? activePrompt.selected 
-                : activePrompt.pointer;
-              
-              let targetIdx = matchingIndices[0];
-              const currentMatchPos = matchingIndices.indexOf(currentIdx);
-              
-              if (currentMatchPos !== -1) {
-                const nextMatchPos = (currentMatchPos + 1) % matchingIndices.length;
-                targetIdx = matchingIndices[nextMatchPos];
-              }
-
+            if (matchIdx !== -1) {
               if (typeof activePrompt.selected === 'number') {
-                activePrompt.selected = targetIdx;
+                activePrompt.selected = matchIdx;
               } else if (typeof activePrompt.pointer === 'number') {
-                activePrompt.pointer = targetIdx;
+                activePrompt.pointer = matchIdx;
               }
               activePrompt.render();
             }
+          }
+        } else {
+          searchBuffer = '';
+          if (searchTimeout) {
+            clearTimeout(searchTimeout);
           }
         }
       }
