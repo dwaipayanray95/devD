@@ -31,7 +31,7 @@ import { getStoredToken, saveStoredToken } from './config.js';
  * Gets a clean list of all local and remote branches.
  * @returns {Promise<Array<{name: string, isCurrent: boolean, isRemote: boolean}>>}
  */
-async function getAllBranches() {
+export async function getAllBranches() {
   const res = await runGitCommand('branch -a');
   if (!res.success || !res.stdout) return [];
   
