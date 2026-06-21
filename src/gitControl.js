@@ -756,6 +756,7 @@ export async function showGitControlsMenu(onActionCallback) {
         choices: [
           { name: '✍️  Stage & Commit Wizard (Conventional)', value: 'commit' },
           { name: '🌿 Git Branch Manager', value: 'branch-manager' },
+          { name: '🏷️  Create & Push Release Tag', value: 'tag' },
           { name: '📊 Show Repo Status Dashboard', value: 'status' },
           { name: '🔄 Sync Repo (Pull & Push)', value: 'sync' },
           { name: '📥 Stash Current Changes', value: 'stash' },
@@ -777,5 +778,68 @@ export async function showGitControlsMenu(onActionCallback) {
       return 'back';
     }
     throw error;
+  }
+}
+
+/**
+ * Interactive Git release tagging wizard.
+ */
+export async function createGitTag() {
+  try {
+    printBanner();
+    console.log(colors.accent('🏷️  CREATE & PUSH RELEASE TAG\n'));
+
+    const answers = await promptWithEscape([
+      {
+        type: 'input',
+        name: 'tagName',
+        message: 'Enter tag name (e.g. v1.0.0):',
+        validate: val => val.trim().length > 0 ? true : 'Tag name is required.'
+      },
+      {
+        type: 'input',
+        name: 'message',
+        message: 'Enter tag message / annotation (optional):',
+        filter: val => val.trim()
+      },
+      {
+        type: 'confirm',
+        name: 'pushTag',
+        message: 'Would you like to push this tag to the remote origin?',
+        default: true
+      }
+    ]);
+
+    const tagName = answers.tagName.trim();
+    const tagMsg = answers.message;
+    
+    const tagSpinner = ora(colors.primary(`Creating tag ${tagName}...`)).start();
+    const tagArgs = tagMsg ? ['tag', '-a', tagName, '-m', tagMsg] : ['tag', tagName];
+    const tagRes = await runGitCommand(tagArgs);
+    tagSpinner.stop();
+
+    if (tagRes.success) {
+      console.log(colors.success(`\n✔ Tag "${tagName}" created successfully.`));
+      
+      if (answers.pushTag) {
+        const pushSpinner = ora(colors.primary(`Pushing tag ${tagName} to origin...`)).start();
+        const pushRes = await runGitCommand(['push', 'origin', tagName]);
+        pushSpinner.stop();
+        
+        if (pushRes.success) {
+          console.log(colors.success(`✔ Tag "${tagName}" pushed successfully to origin.`));
+        } else {
+          console.log(colors.error(`✖ Failed to push tag: ${pushRes.stderr || pushRes.error}`));
+        }
+      }
+    } else {
+      console.log(colors.error(`✖ Failed to create tag: ${tagRes.stderr || tagRes.error}`));
+    }
+  } catch (error) {
+    if (error.message === 'ESCAPE_CANCELLED') {
+      console.log(colors.info('\nTagging cancelled.'));
+    } else {
+      throw error;
+    }
   }
 }
