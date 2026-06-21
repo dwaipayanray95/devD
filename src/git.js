@@ -1,5 +1,6 @@
 import { exec, execFile, spawn } from 'child_process';
 import { promisify } from 'util';
+import { logMessage } from './logger.js';
 
 const execAsync = promisify(exec);
 const execFileAsync = promisify(execFile);
@@ -10,6 +11,7 @@ const execFileAsync = promisify(execFile);
  * @returns {Promise<{success: boolean, stdout: string, stderr: string, error?: string}>}
  */
 export async function runGitCommand(args, cwd = process.cwd()) {
+  const cmdStr = Array.isArray(args) ? `git ${args.join(' ')}` : `git ${args}`;
   try {
     let stdout, stderr;
     if (Array.isArray(args)) {
@@ -21,13 +23,17 @@ export async function runGitCommand(args, cwd = process.cwd()) {
       stdout = out;
       stderr = err;
     }
+    logMessage(`Executed: ${cmdStr}`, 'INFO');
     return { success: true, stdout: stdout.trim(), stderr: stderr.trim() };
   } catch (error) {
+    const errorMsg = error.message;
+    const stderrMsg = error.stderr?.trim() || '';
+    logMessage(`Failed: ${cmdStr} - Error: ${errorMsg} - Stderr: ${stderrMsg}`, 'ERROR');
     return { 
       success: false, 
-      error: error.message, 
+      error: errorMsg, 
       stdout: error.stdout?.trim() || '', 
-      stderr: error.stderr?.trim() || '' 
+      stderr: stderrMsg
     };
   }
 }

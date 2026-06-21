@@ -42,6 +42,7 @@ import {
   createGitHubRelease
 } from '../src/gitControl.js';
 import { detectPlatform } from '../src/detector.js';
+import { manageLogsMenu } from '../src/logger.js';
 
 const GIT_ACTIONS = new Set([
   'git-controls',
@@ -147,6 +148,7 @@ async function showSettingsMenu() {
       choices: [
         { name: '✨ Update devD CLI', value: 'update' },
         { name: 'ℹ️  Help & Commands', value: 'help' },
+        { name: '📋 Manage System Logs', value: 'logs' },
         { name: '🔁 Restart devD CLI', value: 'restart' },
         { name: '❤️  Made with <3 by @dwaipayanray95', value: 'author' },
         { name: '↩ Back to main menu', value: 'back' }
@@ -169,6 +171,10 @@ async function handleMenuAction(action) {
   switch (action) {
     case 'settings':
       await showSettingsMenu();
+      break;
+
+    case 'logs':
+      await manageLogsMenu();
       break;
 
     case 'author':

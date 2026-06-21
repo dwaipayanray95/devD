@@ -24,6 +24,7 @@ import {
   getLocalBranches,
   getStashes
 } from './git.js';
+import { logMessage, manageLogsMenu } from './logger.js';
 
 /**
  * Gets a clean list of all local and remote branches.
@@ -986,16 +987,49 @@ export async function createGitHubRelease() {
       if (response.ok) {
         console.log(colors.success(`\n✔ GitHub Release created successfully!`));
         console.log(`   URL: ${colors.info(data.html_url)}`);
+        logMessage(`GitHub Release created successfully for tag ${answers.tagName.trim()}`, 'INFO');
       } else {
         const errorMsg = data.message || 'Unknown GitHub API error';
         console.log(colors.error(`\n✖ GitHub API returned error: ${errorMsg}`));
+        let detail = `GitHub API Error: ${errorMsg}`;
         if (data.errors) {
-          data.errors.forEach(e => console.log(colors.muted(`   ↳ ${e.resource}: ${e.code} (${e.field || ''})`)));
+          data.errors.forEach(e => {
+            const line = `   ↳ ${e.resource}: ${e.code} (${e.field || ''})`;
+            console.log(colors.muted(line));
+            detail += `\n${line}`;
+          });
+        }
+        logMessage(`GitHub Release Creation Failed: ${detail}`, 'ERROR');
+
+        const opt = await inquirer.prompt([
+          {
+            type: 'confirm',
+            name: 'showLogs',
+            message: 'Release failed. Would you like to view/submit logs to diagnose or report?',
+            default: false
+          }
+        ]);
+        if (opt.showLogs) {
+          await manageLogsMenu(errorMsg);
         }
       }
     } catch (apiErr) {
       spinner.stop();
-      console.log(colors.error(`\n✖ Failed to connect to GitHub API: ${apiErr.message}`));
+      const apiMsg = apiErr.message;
+      console.log(colors.error(`\n✖ Failed to connect to GitHub API: ${apiMsg}`));
+      logMessage(`Failed to connect to GitHub API: ${apiMsg}`, 'ERROR');
+
+      const opt = await inquirer.prompt([
+        {
+          type: 'confirm',
+          name: 'showLogs',
+          message: 'Connection failed. Would you like to view/submit logs to diagnose or report?',
+          default: false
+        }
+      ]);
+      if (opt.showLogs) {
+        await manageLogsMenu(apiMsg);
+      }
     }
   } catch (error) {
     if (error.message === 'ESCAPE_CANCELLED') {
