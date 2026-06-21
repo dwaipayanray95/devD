@@ -26,7 +26,8 @@ import {
   askGemini, 
   colors,
   checkForUpdates,
-  getLocalVersion
+  getLocalVersion,
+  getProjectInfo
 } from '../src/ui.js';
 import { parseCommand, showHelpMenu } from '../src/commands.js';
 import { navigateDirectories } from '../src/navigator.js';
@@ -62,6 +63,7 @@ const GIT_ACTIONS = new Set([
 const program = new Command();
 
 function runBumper(type) {
+  const beforeInfo = getProjectInfo();
   return new Promise((resolve) => {
     const cmd = 'node';
     const args = [join(__dirname, '../node_modules/bump-version/bin/bump.js')];
@@ -69,7 +71,7 @@ function runBumper(type) {
       args.push(type.trim().toLowerCase());
     }
     
-    console.log(colors.info(`\nRunning bump-version CLI from GitHub...`));
+    console.log(colors.info(`\nRunning bump-version CLI...`));
     
     if (process.stdin.isTTY) {
       process.stdin.pause();
@@ -89,13 +91,21 @@ function runBumper(type) {
       if (process.stdin.isTTY) {
         process.stdin.resume();
       }
+      
+      const afterInfo = getProjectInfo();
+      const versionChanged = beforeInfo !== afterInfo;
+
       if (code === 0) {
-        console.log(colors.success('\n✔ Version bump completed successfully!'));
-        resolve('success');
+        if (versionChanged) {
+          console.log(colors.success('\n✔ Version bump completed successfully!'));
+          resolve('success');
+        } else {
+          resolve('exit');
+        }
       } else if (code === 2) {
         resolve('exit');
       } else {
-        console.log(colors.error(`\n✖ Version bump process exited with code ${code}.`));
+        console.log(colors.error(`\n✖ Version bumper exited with code ${code}.`));
         resolve('failed');
       }
     });
@@ -149,8 +159,8 @@ async function showSettingsMenu() {
       choices: [
         { name: '✨ Update devD CLI', value: 'update' },
         { name: 'ℹ️  Help & Commands', value: 'help' },
+        { name: '⚙️  Preferences', value: 'preferences' },
         { name: '📋 Manage System Logs', value: 'logs' },
-        { name: '🔑 Configure GitHub Token', value: 'git-token' },
         { name: '🔁 Restart devD CLI', value: 'restart' },
         { name: '❤️  Made with <3 by @dwaipayanray95', value: 'author' },
         { name: '↩ Back to main menu', value: 'back' }
@@ -168,21 +178,36 @@ async function showSettingsMenu() {
   await handleMenuAction(answer.action);
 }
 
-async function handleMenuAction(action) {
-  console.clear();
-  switch (action) {
-    case 'settings':
-      await showSettingsMenu();
-      break;
+async function showPreferencesMenu() {
+  printBanner();
+  console.log(colors.accent('⚙️  PREFERENCES\n'));
 
-    case 'logs':
-      await manageLogsMenu();
-      break;
+  const answer = await inquirer.prompt([
+    {
+      type: 'list',
+      name: 'action',
+      message: 'Select option:',
+      choices: [
+        { name: '🔑 Configure GitHub Token', value: 'git-token' },
+        { name: '↩ Back to settings menu', value: 'back' }
+      ],
+      loop: false
+    }
+  ]);
 
+  if (answer.action === 'back') {
+    await showSettingsMenu();
+    return;
+  }
+
+  switch (answer.action) {
     case 'git-token': {
+      console.clear();
+      printBanner();
+      console.log(colors.accent('🔑 CONFIGURE GITHUB TOKEN\n'));
       const currentToken = getStoredToken();
       if (currentToken) {
-        console.log(colors.info(`\nA GitHub Token is currently stored locally (masked: ****${currentToken.slice(-4)}).`));
+        console.log(colors.info(`A GitHub Token is currently stored locally (masked: ****${currentToken.slice(-4)}).`));
         const ans = await inquirer.prompt([
           {
             type: 'list',
@@ -213,7 +238,7 @@ async function handleMenuAction(action) {
           console.log(colors.success('✔ New token saved successfully.'));
         }
       } else {
-        console.log(colors.warning('\nNo GitHub Token is currently stored locally.'));
+        console.log(colors.warning('No GitHub Token is currently stored locally.'));
         const ans = await inquirer.prompt([
           {
             type: 'confirm',
@@ -238,6 +263,26 @@ async function handleMenuAction(action) {
       }
       break;
     }
+  }
+
+  await pressEnterToContinue();
+  await showPreferencesMenu();
+}
+
+async function handleMenuAction(action) {
+  console.clear();
+  switch (action) {
+    case 'settings':
+      await showSettingsMenu();
+      break;
+
+    case 'preferences':
+      await showPreferencesMenu();
+      break;
+
+    case 'logs':
+      await manageLogsMenu();
+      break;
 
     case 'author':
       openUrl('https://github.com/dwaipayanray95/devD');
