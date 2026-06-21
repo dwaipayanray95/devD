@@ -11,6 +11,7 @@ export const COMMANDS_HELP = [
   { command: 'stash', shortcuts: [], desc: 'Save current modifications to stash stack' },
   { command: 'pop', shortcuts: ['stash-pop'], desc: 'Restore/apply the last stashed modifications' },
   { command: 'bump', shortcuts: ['b'], desc: 'Bump package version dynamically using bump-version' },
+  { command: 'tag', shortcuts: ['t'], desc: 'Create and push a release Git tag' },
   { command: 'ai', shortcuts: ['a', 'gemini'], desc: 'Query Gemini AI assistant directly' },
   { command: 'update', shortcuts: ['u'], desc: 'Update devD CLI from latest release tag' },
   { command: 'update --latest', shortcuts: [], desc: 'Update devD CLI from latest main branch commit' },
@@ -32,6 +33,7 @@ export function parseCommand(cmdInput) {
   if (lowerCmd === 'stash') return 'stash';
   if (lowerCmd === 'stash-pop' || lowerCmd === 'pop') return 'stash-pop';
   if (lowerCmd === 'bump' || lowerCmd === 'b') return 'bump';
+  if (lowerCmd === 'tag' || lowerCmd === 't') return 'tag';
   if (lowerCmd === 'ai' || lowerCmd === 'a' || lowerCmd === 'gemini') return 'ai';
   if (lowerCmd === 'update' || lowerCmd === 'u') return 'update';
   if (lowerCmd === 'help' || lowerCmd === 'h' || lowerCmd === '?') return 'help';

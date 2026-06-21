@@ -37,7 +37,8 @@ import {
   runCommitWizard, 
   handleGitError, 
   manageBranches, 
-  showGitControlsMenu 
+  showGitControlsMenu,
+  createGitTag
 } from '../src/gitControl.js';
 import { detectPlatform } from '../src/detector.js';
 
@@ -50,7 +51,8 @@ const GIT_ACTIONS = new Set([
   'stash',
   'stash-pop',
   'status',
-  'bump'
+  'bump',
+  'tag'
 ]);
 
 const program = new Command();
@@ -181,6 +183,10 @@ async function handleMenuAction(action) {
 
     case 'branch-manager':
       await manageBranches();
+      break;
+
+    case 'tag':
+      await createGitTag();
       break;
 
     case 'run-app': {
@@ -696,6 +702,19 @@ program
   .description('Build the app in this directory (auto-detects framework)')
   .action(async () => {
     await handleMenuAction('build-app');
+  });
+
+program
+  .command('tag')
+  .alias('t')
+  .description('Create and push a release Git tag')
+  .action(async () => {
+    const gitActive = await isGitRepository();
+    if (!gitActive) {
+      console.log(colors.error('Error: Not inside a Git repository.'));
+      process.exit(1);
+    }
+    await createGitTag();
   });
 
 program.parse(process.argv);
