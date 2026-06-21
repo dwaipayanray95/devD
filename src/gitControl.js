@@ -25,6 +25,7 @@ import {
   getStashes
 } from './git.js';
 import { logMessage, manageLogsMenu } from './logger.js';
+import { getStoredToken, saveStoredToken } from './config.js';
 
 /**
  * Gets a clean list of all local and remote branches.
@@ -943,9 +944,9 @@ export async function createGitHubRelease() {
       ? answers.customTargetBranch.trim()
       : answers.targetBranchSelect;
 
-    let token = process.env.GITHUB_TOKEN || process.env.GH_TOKEN;
+    let token = process.env.GITHUB_TOKEN || process.env.GH_TOKEN || getStoredToken();
     if (!token) {
-      console.log(colors.warning('\n⚠️  No GITHUB_TOKEN or GH_TOKEN found in environment variables.'));
+      console.log(colors.warning('\n⚠️  No GITHUB_TOKEN or GH_TOKEN found in environment variables or local storage.'));
       const tokenAnswer = await promptWithEscape([
         {
           type: 'password',
@@ -956,6 +957,19 @@ export async function createGitHubRelease() {
         }
       ]);
       token = tokenAnswer.token.trim();
+      
+      const saveAnswer = await promptWithEscape([
+        {
+          type: 'confirm',
+          name: 'save',
+          message: 'Would you like to store this token locally for future releases?',
+          default: true
+        }
+      ]);
+      if (saveAnswer.save) {
+        saveStoredToken(token);
+        console.log(colors.success('✔ Token saved locally in ~/.devd/config.json.'));
+      }
     }
 
     const spinner = ora(colors.primary('Creating GitHub Release...')).start();

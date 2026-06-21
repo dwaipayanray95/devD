@@ -43,6 +43,7 @@ import {
 } from '../src/gitControl.js';
 import { detectPlatform } from '../src/detector.js';
 import { manageLogsMenu } from '../src/logger.js';
+import { getStoredToken, saveStoredToken } from '../src/config.js';
 
 const GIT_ACTIONS = new Set([
   'git-controls',
@@ -149,6 +150,7 @@ async function showSettingsMenu() {
         { name: '✨ Update devD CLI', value: 'update' },
         { name: 'ℹ️  Help & Commands', value: 'help' },
         { name: '📋 Manage System Logs', value: 'logs' },
+        { name: '🔑 Configure GitHub Token', value: 'git-token' },
         { name: '🔁 Restart devD CLI', value: 'restart' },
         { name: '❤️  Made with <3 by @dwaipayanray95', value: 'author' },
         { name: '↩ Back to main menu', value: 'back' }
@@ -176,6 +178,66 @@ async function handleMenuAction(action) {
     case 'logs':
       await manageLogsMenu();
       break;
+
+    case 'git-token': {
+      const currentToken = getStoredToken();
+      if (currentToken) {
+        console.log(colors.info(`\nA GitHub Token is currently stored locally (masked: ****${currentToken.slice(-4)}).`));
+        const ans = await inquirer.prompt([
+          {
+            type: 'list',
+            name: 'opt',
+            message: 'What would you like to do?',
+            choices: [
+              { name: '🔄 Replace stored token', value: 'replace' },
+              { name: '❌ Clear stored token', value: 'clear' },
+              { name: '↩ Return', value: 'back' }
+            ],
+            loop: false
+          }
+        ]);
+        if (ans.opt === 'clear') {
+          saveStoredToken(null);
+          console.log(colors.success('✔ Token cleared successfully.'));
+        } else if (ans.opt === 'replace') {
+          const tokenAns = await inquirer.prompt([
+            {
+              type: 'password',
+              name: 'token',
+              message: 'Paste your new GitHub Personal Access Token:',
+              mask: '*',
+              validate: val => val.trim().length > 0 ? true : 'Token is required.'
+            }
+          ]);
+          saveStoredToken(tokenAns.token.trim());
+          console.log(colors.success('✔ New token saved successfully.'));
+        }
+      } else {
+        console.log(colors.warning('\nNo GitHub Token is currently stored locally.'));
+        const ans = await inquirer.prompt([
+          {
+            type: 'confirm',
+            name: 'add',
+            message: 'Would you like to add one now?',
+            default: true
+          }
+        ]);
+        if (ans.add) {
+          const tokenAns = await inquirer.prompt([
+            {
+              type: 'password',
+              name: 'token',
+              message: 'Paste your GitHub Personal Access Token:',
+              mask: '*',
+              validate: val => val.trim().length > 0 ? true : 'Token is required.'
+            }
+          ]);
+          saveStoredToken(tokenAns.token.trim());
+          console.log(colors.success('✔ Token saved successfully.'));
+        }
+      }
+      break;
+    }
 
     case 'author':
       openUrl('https://github.com/dwaipayanray95/devD');
