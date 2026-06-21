@@ -92,6 +92,17 @@ func RunCommitWizard() {
 	commitRes := Commit(msg)
 	if commitRes.Success {
 		fmt.Println(ui.Success.Render("\n✔ Commit created successfully!"))
+		
+		pushConfirm, err := ui.PromptConfirm("Would you like to push changes to remote origin?", true)
+		if err == nil && pushConfirm {
+			fmt.Println("\nPushing changes...")
+			pushRes := Push()
+			if pushRes.Success {
+				fmt.Println(ui.Success.Render("✔ Successfully pushed changes to remote!"))
+			} else {
+				fmt.Println(ui.Error.Render("✖ Push failed: " + pushRes.Stderr))
+			}
+		}
 	} else {
 		fmt.Println(ui.Error.Render("\n✖ Commit failed: " + commitRes.Error.Error()))
 	}
