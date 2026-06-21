@@ -81,6 +81,7 @@ export async function runSelfUpdate(toLatestCommit = false) {
           process.stdin.setRawMode(false);
           process.stdin.pause();
           process.stdin.removeAllListeners();
+          process.stdin.destroy();
         }
         
         const restartChild = spawn(process.argv[0], process.argv.slice(1), { stdio: 'inherit' });

@@ -425,6 +425,7 @@ async function handleMenuAction(action) {
         process.stdin.setRawMode(false);
         process.stdin.pause();
         process.stdin.removeAllListeners();
+        process.stdin.destroy();
       }
       const child = spawn(process.argv[0], process.argv.slice(1), { stdio: 'inherit' });
       child.on('close', (code) => {
