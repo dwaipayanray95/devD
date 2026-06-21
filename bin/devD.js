@@ -7,6 +7,7 @@ import fs, { readFileSync } from 'fs';
 import { fileURLToPath } from 'url';
 import path, { dirname, join } from 'path';
 import { spawn } from 'child_process';
+import http from 'http';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -19,7 +20,10 @@ import {
   push, 
   stashSave, 
   stashPop,
-  getAheadBehind
+  getAheadBehind,
+  getChangedFiles,
+  stageFiles,
+  commit
 } from '../src/git.js';
 import { 
   printBanner, 
@@ -40,7 +44,9 @@ import {
   manageBranches, 
   showGitControlsMenu,
   createGitTag,
-  createGitHubRelease
+  createGitHubRelease,
+  getGitHubRepoDetails,
+  getAllBranches
 } from '../src/gitControl.js';
 import { detectPlatform } from '../src/detector.js';
 import { manageLogsMenu } from '../src/logger.js';
