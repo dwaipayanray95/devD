@@ -6,8 +6,9 @@ import (
 	"os/exec"
 	"strings"
 
+	"syscall"
+
 	"github.com/dwaipayanray95/devD/internal/config"
-	"github.com/dwaipayanray95/devD/internal/git"
 	"github.com/dwaipayanray95/devD/internal/logger"
 	"github.com/dwaipayanray95/devD/internal/ui"
 )
@@ -35,18 +36,7 @@ func ShowSettingsMenu() {
 
 		switch {
 		case strings.Contains(chosen, "Update"):
-			// Run git pull/update sequence or npm update if npm linked
-			ui.PrintBanner(Version)
-			fmt.Println("Updating devD CLI from repository...")
-			// Trigger self-updater script if available or pull git branch
-			res := git.RunGitCommand([]string{"pull", "--rebase"})
-			if res.Success {
-				fmt.Println(ui.Success.Render("\n✔ devD updated successfully!"))
-				RestartCLI()
-			} else {
-				fmt.Println(ui.Error.Render("\n✖ Update failed: " + res.Stderr))
-			}
-			ui.PressEnterToContinue()
+			RunSelfUpdate()
 
 		case strings.Contains(chosen, "Help"):
 			ShowHelpMenu()
@@ -165,10 +155,15 @@ func ShowHelpMenu() {
 
 func RestartCLI() {
 	fmt.Println(ui.Info.Render("\nRestarting devD..."))
-	// Close stdin descriptor before restarting to prevent TTY competition
-	_ = os.Stdin.Close()
-
+	argv0, err := exec.LookPath(os.Args[0])
+	if err != nil {
+		argv0 = os.Args[0]
+	}
+	_ = syscall.Exec(argv0, os.Args, os.Environ())
+	
+	// Fallback to exec spawning if syscall.Exec fails
 	cmd := exec.Command(os.Args[0], os.Args[1:]...)
+	cmd.Stdin = os.Stdin
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	_ = cmd.Run()

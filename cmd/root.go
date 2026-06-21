@@ -106,6 +106,10 @@ func ParseCommand(cmdInput string) string {
 		return "help"
 	case "restart", "r":
 		return "restart"
+	case "settings", "set":
+		return "settings"
+	case "logs", "log":
+		return "logs"
 	case "exit", "q", "quit":
 		return "exit"
 	}
@@ -302,7 +306,57 @@ func HandleMenuAction(action string) {
 		ShowSettingsMenu()
 	case "logs":
 		logger.ManageLogsMenu("")
+	case "update":
+		RunSelfUpdate()
+	case "help":
+		ShowHelpMenu()
 	case "restart":
 		RestartCLI()
 	}
+}
+
+func RunSelfUpdate() {
+	ui.PrintBanner(Version)
+	fmt.Println(ui.Info.Render("Updating devD CLI..."))
+	
+	// Check if this is a Git clone (development mode)
+	if _, err := os.Stat(".git"); err == nil {
+		fmt.Println(ui.Muted.Render("Running in development repo. Executing: git pull --rebase && go build"))
+		pullRes := git.RunGitCommand([]string{"pull", "--rebase"})
+		if !pullRes.Success {
+			fmt.Println(ui.Error.Render("\n✖ Git pull failed: " + pullRes.Stderr))
+			ui.PressEnterToContinue()
+			return
+		}
+		buildCmd := exec.Command("go", "build", "-o", "devd", "main.go")
+		buildCmd.Stdout = os.Stdout
+		buildCmd.Stderr = os.Stderr
+		buildCmd.Stdin = os.Stdin
+		if err := buildCmd.Run(); err != nil {
+			fmt.Println(ui.Error.Render("\n✖ Rebuild failed: " + err.Error()))
+			ui.PressEnterToContinue()
+			return
+		}
+		fmt.Println(ui.Success.Render("\n✔ devD updated and rebuilt successfully!"))
+		ui.PressEnterToContinue()
+		RestartCLI()
+		return
+	}
+
+	// Production: run npm install -g dwaipayanray95/devD
+	fmt.Println(ui.Muted.Render("Executing: npm install -g dwaipayanray95/devD"))
+	cmd := exec.Command("npm", "install", "-g", "dwaipayanray95/devD")
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	cmd.Stdin = os.Stdin
+	err := cmd.Run()
+	if err != nil {
+		fmt.Println(ui.Error.Render("\n✖ Update failed: " + err.Error()))
+		fmt.Println(ui.Warning.Render("If this is a permission error, please run: sudo npm install -g dwaipayanray95/devD"))
+	} else {
+		fmt.Println(ui.Success.Render("\n✔ devD updated successfully!"))
+		ui.PressEnterToContinue()
+		RestartCLI()
+	}
+	ui.PressEnterToContinue()
 }

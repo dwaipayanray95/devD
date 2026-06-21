@@ -70,21 +70,46 @@ func GetProjectInfo() string {
 }
 
 func RenderBanner(version string) string {
-	var s strings.Builder
-	
 	rawInfo := GetProjectInfo()
-	maxLen := 35
+	maxLen := 40
 	projectStr := rawInfo
 	if len(rawInfo) > maxLen {
 		projectStr = rawInfo[:maxLen-3] + "..."
 	}
 
-	// Draw clean left vertical border lines for premium look
-	s.WriteString(Muted.Render("  │  ") + Bright.Render("🚀  devD CLI v"+version) + "\n")
-	s.WriteString(Muted.Render("  │  ") + Muted.Render("Accelerating Developer Workflows") + "\n")
-	s.WriteString(Muted.Render("  │  ") + Accent.Render("📂  Workspace: "+projectStr) + "\n")
-	s.WriteString("\n")
-	return s.String()
+	width := 56
+
+	borderStyle := lipgloss.NewStyle().
+		Border(lipgloss.DoubleBorder()).
+		BorderForeground(lipgloss.Color("#818cf8")).
+		Width(width)
+
+	title := "🚀  devD CLI v" + version
+	titleStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#ffffff")).Bold(true)
+	titleCellWidth := lipgloss.Width(title)
+	titlePadding := (width - titleCellWidth) / 2
+	if titlePadding < 0 {
+		titlePadding = 0
+	}
+	titleLine := strings.Repeat(" ", titlePadding) + titleStyle.Render(title)
+
+	subtitle := "Accelerating Developer Workflows"
+	subtitleStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#94a3b8"))
+	subCellWidth := lipgloss.Width(subtitle)
+	subPadding := (width - subCellWidth) / 2
+	if subPadding < 0 {
+		subPadding = 0
+	}
+	subtitleLine := strings.Repeat(" ", subPadding) + subtitleStyle.Render(subtitle)
+
+	workspaceLine := " 📂  Workspace: " + Accent.Render(projectStr)
+
+	dividerStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#818cf8"))
+	dividerLine := dividerStyle.Render(strings.Repeat("═", width))
+
+	boxContent := titleLine + "\n" + subtitleLine + "\n" + dividerLine + "\n" + workspaceLine
+
+	return borderStyle.Render(boxContent) + "\n\n"
 }
 
 func PrintBanner(version string) {
