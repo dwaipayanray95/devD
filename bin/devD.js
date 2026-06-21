@@ -50,7 +50,7 @@ import {
 } from '../src/gitControl.js';
 import { detectPlatform } from '../src/detector.js';
 import { manageLogsMenu } from '../src/logger.js';
-import { getStoredToken, saveStoredToken, getStoredTheme, saveStoredTheme } from '../src/config.js';
+import { getStoredToken, saveStoredToken } from '../src/config.js';
 
 const GIT_ACTIONS = new Set([
   'git-controls',
@@ -188,9 +188,6 @@ async function showPreferencesMenu() {
   printBanner();
   console.log(colors.accent('⚙️  PREFERENCES\n'));
 
-  const currentTheme = getStoredTheme();
-  const themeName = currentTheme.charAt(0).toUpperCase() + currentTheme.slice(1);
-
   const answer = await inquirer.prompt([
     {
       type: 'list',
@@ -198,7 +195,6 @@ async function showPreferencesMenu() {
       message: 'Select option:',
       choices: [
         { name: '🔑 Configure GitHub Token', value: 'git-token' },
-        { name: `🎨 Toggle Terminal Theme (Current: ${themeName})`, value: 'toggle-theme' },
         { name: '↩ Back to settings menu', value: 'back' }
       ],
       loop: false
@@ -211,12 +207,6 @@ async function showPreferencesMenu() {
   }
 
   switch (answer.action) {
-    case 'toggle-theme': {
-      const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
-      saveStoredTheme(newTheme);
-      console.log(colors.success(`\n✔ Theme changed to ${newTheme.toUpperCase()} mode.`));
-      break;
-    }
 
     case 'git-token': {
       console.clear();
