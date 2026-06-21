@@ -54,6 +54,19 @@ function openUrl(url) {
   }
 }
 
+function copyToClipboard(text) {
+  return new Promise((resolve) => {
+    const proc = exec(
+      process.platform === 'darwin' ? 'pbcopy' : process.platform === 'win32' ? 'clip' : 'xclip -selection clipboard',
+      (error) => {
+        resolve(!error);
+      }
+    );
+    proc.stdin.write(text);
+    proc.stdin.end();
+  });
+}
+
 export async function manageLogsMenu(errorDetail = null) {
   const choices = [
     { name: '📋 View Logs inside devD', value: 'view' },
@@ -81,18 +94,37 @@ export async function manageLogsMenu(errorDetail = null) {
       console.clear();
       console.log(colors.accent('📋  DEVD SYSTEM LOGS\n'));
       const logFile = getLogFilePath();
+      let content = '';
       if (fs.existsSync(logFile)) {
-        const content = fs.readFileSync(logFile, 'utf8');
+        content = fs.readFileSync(logFile, 'utf8');
         console.log(content);
       } else {
         console.log(colors.warning('No logs found yet.'));
       }
       console.log();
-      await inquirer.prompt([{
-        type: 'input',
-        name: 'continue',
-        message: colors.muted('Press Enter to return...')
-      }]);
+
+      const copyAnswer = await inquirer.prompt([
+        {
+          type: 'list',
+          name: 'opt',
+          message: 'Choose action:',
+          choices: [
+            { name: '📋 Copy logs to clipboard', value: 'copy' },
+            { name: '↩ Return', value: 'back' }
+          ],
+          loop: false
+        }
+      ]);
+
+      if (copyAnswer.opt === 'copy' && content) {
+        const success = await copyToClipboard(content);
+        if (success) {
+          console.log(colors.success('\n✔ Logs successfully copied to clipboard!'));
+        } else {
+          console.log(colors.warning('\n⚠️  Failed to copy logs automatically (ensure xclip is installed on Linux).'));
+        }
+        await new Promise(r => setTimeout(r, 1200));
+      }
       return manageLogsMenu(errorDetail);
     }
     case 'submit': {
