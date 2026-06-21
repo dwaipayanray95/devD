@@ -24,8 +24,8 @@ export async function navigateDirectories() {
     printBanner();
     console.log(colors.accent('📁  DIRECTORY NAVIGATOR'));
     console.log(`   Current Path: ${colors.bright(currentDir)}\n`);
-    console.log(colors.muted('   [Arrows] Navigate  |  [Enter] Open Folder  |  [Space] Select & CD'));
-    console.log(colors.muted('   [Esc] Cancel and return\n'));
+    console.log(colors.muted('   ▲/▼ Navigate  •  Enter Open Folder  •  Space Select & CD  •  Esc Cancel'));
+    console.log();
 
     let dirs = [];
     try {

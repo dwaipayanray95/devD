@@ -25,14 +25,14 @@ export function getLocalVersion() {
 
 // Constants for UI theme colors
 export const colors = {
-  primary: chalk.cyan,
-  success: chalk.green,
-  warning: chalk.yellow,
-  error: chalk.red,
-  muted: chalk.gray,
-  info: chalk.blue,
-  accent: chalk.magenta,
-  bright: chalk.white.bold
+  primary: chalk.hex('#00f0ff'),      // Neon Cyan
+  success: chalk.hex('#10b981'),      // Emerald Green
+  warning: chalk.hex('#f59e0b'),      // Amber Orange
+  error: chalk.hex('#f43f5e'),        // Rose Red
+  muted: chalk.hex('#64748b'),        // Slate Grey
+  info: chalk.hex('#3b82f6'),         // Indigo/Blue
+  accent: chalk.hex('#8b5cf6'),       // Violet Accent
+  bright: chalk.hex('#f8fafc').bold   // Off-white Bold
 };
 
 /**
@@ -83,10 +83,10 @@ export function printBanner() {
   const padding = Math.max(0, Math.floor((width - title.length) / 2));
   const line = ' '.repeat(padding) + title + ' '.repeat(width - title.length - padding);
 
-  console.log(colors.primary('┌────────────────────────────────────────────────────────┐'));
-  console.log(colors.primary('│') + colors.bright(line) + colors.primary('│'));
-  console.log(colors.primary('│') + colors.muted('             Accelerating Developer Workflows           ') + colors.primary('│'));
-  console.log(colors.primary('└────────────────────────────────────────────────────────┘'));
+  console.log(colors.muted('┌────────────────────────────────────────────────────────┐'));
+  console.log(colors.muted('│') + colors.primary(line) + colors.muted('│'));
+  console.log(colors.muted('│') + colors.muted('             Accelerating Developer Workflows           ') + colors.muted('│'));
+  console.log(colors.muted('└────────────────────────────────────────────────────────┘'));
   console.log(`${colors.accent('📂 Active Workspace:')} ${colors.bright(getProjectInfo())}`);
   console.log();
 }

@@ -95,7 +95,7 @@ export async function manageBranches() {
     console.log(colors.accent('🌿 GIT BRANCH MANAGER'));
     console.log();
     console.log(`Search / Filter: ${colors.bright(filterQuery)}${colors.muted('_')}`);
-    console.log(colors.muted('------------------------------------------------'));
+    console.log(colors.muted('─'.repeat(56)));
 
     const filtered = getFilteredBranches();
     if (filtered.length === 0) {
@@ -141,8 +141,8 @@ export async function manageBranches() {
       }
     }
 
-    console.log(colors.muted('------------------------------------------------'));
-    console.log(colors.muted('   [Arrows] Navigate  |  [Type] Filter  |  [Enter] Actions  |  [Esc] Back'));
+    console.log(colors.muted('─'.repeat(56)));
+    console.log(colors.muted('   ▲/▼ Navigate  •  Type to Filter  •  Enter Actions  •  Esc Back'));
   };
 
   if (process.stdin.isTTY) {

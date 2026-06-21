@@ -46,7 +46,7 @@ export async function showInteractiveMenu(gitActive) {
     if (escPressedOnce) {
       console.log(colors.warning('   ⚠️  Press Escape again to quit / exit devD companion'));
     } else {
-      console.log(colors.muted('   [Arrows] Navigate menu  |  [Type] Custom command / dir path  |  [Enter] Confirm'));
+      console.log(colors.muted('   ▲/▼ Navigate menu  •  Type custom command / dir  •  Enter Confirm'));
     }
   };
 
