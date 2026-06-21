@@ -31,7 +31,8 @@ import {
   colors,
   checkForUpdates,
   getLocalVersion,
-  getProjectInfo
+  getProjectInfo,
+  promptWithEscape
 } from '../src/ui.js';
 import { parseCommand, showHelpMenu } from '../src/commands.js';
 import { navigateDirectories } from '../src/navigator.js';
@@ -157,123 +158,139 @@ async function showSettingsMenu() {
   printBanner();
   console.log(colors.accent('🛠  SETTINGS MENU\n'));
   
-  const answer = await inquirer.prompt([
-    {
-      type: 'list',
-      name: 'action',
-      message: 'Select option:',
-      choices: [
-        { name: '✨ Update devD CLI', value: 'update' },
-        { name: 'ℹ️  Help & Commands', value: 'help' },
-        { name: '⚙️  Preferences', value: 'preferences' },
-        { name: '📋 Manage System Logs', value: 'logs' },
-        { name: '🔁 Restart devD CLI', value: 'restart' },
-        { name: '❤️  Made with <3 by @dwaipayanray95', value: 'author' },
-        { name: '↩ Back to main menu', value: 'back' }
-      ],
-      loop: false,
-      pageSize: process.stdout.rows ? Math.max(10, process.stdout.rows - 10) : 15
-    }
-  ]);
+  try {
+    const answer = await promptWithEscape([
+      {
+        type: 'list',
+        name: 'action',
+        message: 'Select option:',
+        choices: [
+          { name: '✨ Update devD CLI', value: 'update' },
+          { name: 'ℹ️  Help & Commands', value: 'help' },
+          { name: '⚙️  Preferences', value: 'preferences' },
+          { name: '📋 Manage System Logs', value: 'logs' },
+          { name: '🔁 Restart devD CLI', value: 'restart' },
+          { name: '❤️  Made with <3 by @dwaipayanray95', value: 'author' },
+          { name: '↩ Back to main menu', value: 'back' }
+        ],
+        loop: false,
+        pageSize: process.stdout.rows ? Math.max(10, process.stdout.rows - 10) : 15
+      }
+    ]);
 
-  if (answer.action === 'back') {
-    await runMenuLoop();
-    return;
+    if (answer.action === 'back') {
+      await runMenuLoop();
+      return;
+    }
+    
+    await handleMenuAction(answer.action);
+  } catch (error) {
+    if (error.message === 'ESCAPE_CANCELLED') {
+      await runMenuLoop();
+      return;
+    }
+    throw error;
   }
-  
-  await handleMenuAction(answer.action);
 }
 
 async function showPreferencesMenu() {
   printBanner();
   console.log(colors.accent('⚙️  PREFERENCES\n'));
 
-  const answer = await inquirer.prompt([
-    {
-      type: 'list',
-      name: 'action',
-      message: 'Select option:',
-      choices: [
-        { name: '🔑 Configure GitHub Token', value: 'git-token' },
-        { name: '↩ Back to settings menu', value: 'back' }
-      ],
-      loop: false
-    }
-  ]);
-
-  if (answer.action === 'back') {
-    await showSettingsMenu();
-    return;
-  }
-
-  switch (answer.action) {
-
-    case 'git-token': {
-      console.clear();
-      printBanner();
-      console.log(colors.accent('🔑 CONFIGURE GITHUB TOKEN\n'));
-      const currentToken = getStoredToken();
-      if (currentToken) {
-        console.log(colors.info(`A GitHub Token is currently stored locally (masked: ****${currentToken.slice(-4)}).`));
-        const ans = await inquirer.prompt([
-          {
-            type: 'list',
-            name: 'opt',
-            message: 'What would you like to do?',
-            choices: [
-              { name: '🔄 Replace stored token', value: 'replace' },
-              { name: '❌ Clear stored token', value: 'clear' },
-              { name: '↩ Return', value: 'back' }
-            ],
-            loop: false
-          }
-        ]);
-        if (ans.opt === 'clear') {
-          saveStoredToken(null);
-          console.log(colors.success('✔ Token cleared successfully.'));
-        } else if (ans.opt === 'replace') {
-          const tokenAns = await inquirer.prompt([
-            {
-              type: 'password',
-              name: 'token',
-              message: 'Paste your new GitHub Personal Access Token:',
-              mask: '*',
-              validate: val => val.trim().length > 0 ? true : 'Token is required.'
-            }
-          ]);
-          saveStoredToken(tokenAns.token.trim());
-          console.log(colors.success('✔ New token saved successfully.'));
-        }
-      } else {
-        console.log(colors.warning('No GitHub Token is currently stored locally.'));
-        const ans = await inquirer.prompt([
-          {
-            type: 'confirm',
-            name: 'add',
-            message: 'Would you like to add one now?',
-            default: true
-          }
-        ]);
-        if (ans.add) {
-          const tokenAns = await inquirer.prompt([
-            {
-              type: 'password',
-              name: 'token',
-              message: 'Paste your GitHub Personal Access Token:',
-              mask: '*',
-              validate: val => val.trim().length > 0 ? true : 'Token is required.'
-            }
-          ]);
-          saveStoredToken(tokenAns.token.trim());
-          console.log(colors.success('✔ Token saved successfully.'));
-        }
+  try {
+    const answer = await promptWithEscape([
+      {
+        type: 'list',
+        name: 'action',
+        message: 'Select option:',
+        choices: [
+          { name: '🔑 Configure GitHub Token', value: 'git-token' },
+          { name: '↩ Back to settings menu', value: 'back' }
+        ],
+        loop: false
       }
-      break;
-    }
-  }
+    ]);
 
-  await pressEnterToContinue();
-  await showPreferencesMenu();
+    if (answer.action === 'back') {
+      await showSettingsMenu();
+      return;
+    }
+
+    switch (answer.action) {
+
+      case 'git-token': {
+        console.clear();
+        printBanner();
+        console.log(colors.accent('🔑 CONFIGURE GITHUB TOKEN\n'));
+        const currentToken = getStoredToken();
+        if (currentToken) {
+          console.log(colors.info(`A GitHub Token is currently stored locally (masked: ****${currentToken.slice(-4)}).`));
+          const ans = await inquirer.prompt([
+            {
+              type: 'list',
+              name: 'opt',
+              message: 'What would you like to do?',
+              choices: [
+                { name: '🔄 Replace stored token', value: 'replace' },
+                { name: '❌ Clear stored token', value: 'clear' },
+                { name: '↩ Return', value: 'back' }
+              ],
+              loop: false
+            }
+          ]);
+          if (ans.opt === 'clear') {
+            saveStoredToken(null);
+            console.log(colors.success('✔ Token cleared successfully.'));
+          } else if (ans.opt === 'replace') {
+            const tokenAns = await inquirer.prompt([
+              {
+                type: 'password',
+                name: 'token',
+                message: 'Paste your new GitHub Personal Access Token:',
+                mask: '*',
+                validate: val => val.trim().length > 0 ? true : 'Token is required.'
+              }
+            ]);
+            saveStoredToken(tokenAns.token.trim());
+            console.log(colors.success('✔ New token saved successfully.'));
+          }
+        } else {
+          console.log(colors.warning('No GitHub Token is currently stored locally.'));
+          const ans = await inquirer.prompt([
+            {
+              type: 'confirm',
+              name: 'add',
+              message: 'Would you like to add one now?',
+              default: true
+            }
+          ]);
+          if (ans.add) {
+            const tokenAns = await inquirer.prompt([
+              {
+                type: 'password',
+                name: 'token',
+                message: 'Paste your GitHub Personal Access Token:',
+                mask: '*',
+                validate: val => val.trim().length > 0 ? true : 'Token is required.'
+              }
+            ]);
+            saveStoredToken(tokenAns.token.trim());
+            console.log(colors.success('✔ Token saved successfully.'));
+          }
+        }
+        break;
+      }
+    }
+
+    await pressEnterToContinue();
+    await showPreferencesMenu();
+  } catch (error) {
+    if (error.message === 'ESCAPE_CANCELLED') {
+      await showSettingsMenu();
+      return;
+    }
+    throw error;
+  }
 }
 
 async function handleMenuAction(action) {

@@ -3,7 +3,7 @@ import path from 'path';
 import os from 'os';
 import inquirer from 'inquirer';
 import { exec } from 'child_process';
-import { colors } from './ui.js';
+import { colors, promptWithEscape } from './ui.js';
 
 const LOG_DIR = path.join(os.homedir(), '.devd');
 const LOG_FILE = path.join(LOG_DIR, 'devd.log');
@@ -75,58 +75,63 @@ export async function manageLogsMenu(errorDetail = null) {
     { name: '↩ Return', value: 'back' }
   ];
 
-  const answer = await inquirer.prompt([
-    {
-      type: 'list',
-      name: 'action',
-      message: 'Select log operation:',
-      choices,
-      loop: false
-    }
-  ]);
-
-  if (answer.action === 'back') {
-    return;
-  }
-
-  switch (answer.action) {
-    case 'view': {
-      console.clear();
-      console.log(colors.accent('📋  DEVD SYSTEM LOGS\n'));
-      const logFile = getLogFilePath();
-      let content = '';
-      if (fs.existsSync(logFile)) {
-        content = fs.readFileSync(logFile, 'utf8');
-        console.log(content);
-      } else {
-        console.log(colors.warning('No logs found yet.'));
+  try {
+    const answer = await promptWithEscape([
+      {
+        type: 'list',
+        name: 'action',
+        message: 'Select log operation:',
+        choices,
+        loop: false
       }
-      console.log();
+    ]);
 
-      const copyAnswer = await inquirer.prompt([
-        {
-          type: 'list',
-          name: 'opt',
-          message: 'Choose action:',
-          choices: [
-            { name: '📋 Copy logs to clipboard', value: 'copy' },
-            { name: '↩ Return', value: 'back' }
-          ],
-          loop: false
-        }
-      ]);
+    if (answer.action === 'back') {
+      return;
+    }
 
-      if (copyAnswer.opt === 'copy' && content) {
-        const success = await copyToClipboard(content);
-        if (success) {
-          console.log(colors.success('\n✔ Logs successfully copied to clipboard!'));
+    switch (answer.action) {
+      case 'view': {
+        console.clear();
+        console.log(colors.accent('📋  DEVD SYSTEM LOGS\n'));
+        const logFile = getLogFilePath();
+        let content = '';
+        if (fs.existsSync(logFile)) {
+          content = fs.readFileSync(logFile, 'utf8');
+          console.log(content);
         } else {
-          console.log(colors.warning('\n⚠️  Failed to copy logs automatically (ensure xclip is installed on Linux).'));
+          console.log(colors.warning('No logs found yet.'));
         }
-        await new Promise(r => setTimeout(r, 1200));
+        console.log();
+
+        try {
+          const copyAnswer = await promptWithEscape([
+            {
+              type: 'list',
+              name: 'opt',
+              message: 'Choose action:',
+              choices: [
+                { name: '📋 Copy logs to clipboard', value: 'copy' },
+                { name: '↩ Return', value: 'back' }
+              ],
+              loop: false
+            }
+          ]);
+
+          if (copyAnswer.opt === 'copy' && content) {
+            const success = await copyToClipboard(content);
+            if (success) {
+              console.log(colors.success('\n✔ Logs successfully copied to clipboard!'));
+            } else {
+              console.log(colors.warning('\n⚠️  Failed to copy logs automatically (ensure xclip is installed on Linux).'));
+            }
+            await new Promise(r => setTimeout(r, 1200));
+          }
+        } catch (e) {
+          // ESC pressed, ignore and loop back
+        }
+        return manageLogsMenu(errorDetail);
       }
-      return manageLogsMenu(errorDetail);
-    }
     case 'submit': {
       const osType = os.type();
       const osRelease = os.release();
@@ -164,11 +169,17 @@ ${logSnippet || 'No logs recorded.'}
       openUrl(url);
       break;
     }
-    case 'open_folder': {
-      const dir = getLogDirPath();
-      console.log(colors.info(`\nOpening log directory: ${dir}`));
-      openUrl(dir);
-      break;
+      case 'open_folder': {
+        const dir = getLogDirPath();
+        console.log(colors.info(`\nOpening log directory: ${dir}`));
+        openUrl(dir);
+        break;
+      }
     }
+  } catch (error) {
+    if (error.message === 'ESCAPE_CANCELLED') {
+      return;
+    }
+    throw error;
   }
 }
