@@ -77,6 +77,12 @@ export async function runSelfUpdate(toLatestCommit = false) {
         console.log(colors.success('✔ devD has been updated successfully! Restarting automatically...\n'));
         process.stdout.write('\u001B[?25h');
         
+        if (process.stdin.isTTY) {
+          process.stdin.setRawMode(false);
+          process.stdin.pause();
+          process.stdin.removeAllListeners();
+        }
+        
         const restartChild = spawn(process.argv[0], process.argv.slice(1), { stdio: 'inherit' });
         restartChild.on('close', (restartCode) => {
           process.exit(restartCode);

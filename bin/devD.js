@@ -398,7 +398,9 @@ async function handleMenuAction(action) {
     case 'restart': {
       console.log(colors.primary('\nRestarting devD...'));
       if (process.stdin.isTTY) {
+        process.stdin.setRawMode(false);
         process.stdin.pause();
+        process.stdin.removeAllListeners();
       }
       const child = spawn(process.argv[0], process.argv.slice(1), { stdio: 'inherit' });
       child.on('close', (code) => {
