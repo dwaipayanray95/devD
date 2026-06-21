@@ -776,6 +776,7 @@ export async function showGitControlsMenu(onActionCallback) {
     }
     
     await onActionCallback(answer.action);
+    return answer.action;
   } catch (error) {
     if (error.message === 'ESCAPE_CANCELLED') {
       return 'back';

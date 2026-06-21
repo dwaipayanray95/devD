@@ -289,11 +289,18 @@ async function handleMenuAction(action) {
       break;
 
     case 'git-controls': {
-      const res = await showGitControlsMenu(handleMenuAction);
-      if (res === 'back') {
-        await runMenuLoop();
+      while (true) {
+        const action = await showGitControlsMenu(handleMenuAction);
+        if (action === 'back' || !action) {
+          break;
+        }
+        const textCommands = ['status', 'sync', 'tag', 'release', 'stash', 'stash-pop'];
+        if (textCommands.includes(action)) {
+          await pressEnterToContinue();
+        }
       }
-      break;
+      await runMenuLoop();
+      return;
     }
 
     case 'branch-manager':
@@ -548,9 +555,6 @@ async function handleMenuAction(action) {
       process.exit(0);
       break;
   }
-
-  await pressEnterToContinue();
-  await runMenuLoop();
 }
 
 async function runMenuLoop() {
@@ -630,6 +634,12 @@ async function runMenuLoop() {
         }
       }
       await handleMenuAction(action);
+      
+      const submenus = ['settings', 'preferences', 'git-controls', 'logs'];
+      if (!submenus.includes(action)) {
+        await pressEnterToContinue();
+      }
+      await runMenuLoop();
       return;
     } else {
       console.log(colors.warning(`\nUnknown command/shortcut: "${cmdInput}"`));
@@ -648,6 +658,12 @@ async function runMenuLoop() {
       }
     }
     await handleMenuAction(action);
+    
+    const submenus = ['settings', 'preferences', 'git-controls', 'logs'];
+    if (!submenus.includes(action)) {
+      await pressEnterToContinue();
+    }
+    await runMenuLoop();
   }
 }
 
