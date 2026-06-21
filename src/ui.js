@@ -4,6 +4,7 @@ import ora from 'ora';
 import fs, { readFileSync } from 'fs';
 import { fileURLToPath } from 'url';
 import path, { dirname, join } from 'path';
+import { execSync } from 'child_process';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -187,13 +188,60 @@ export function isOutdated(local, remote) {
  * Checks if there is a new update and prints a banner if so.
  * @param {string} localVersion 
  */
-export async function checkForUpdates(localVersion) {
-  const latest = await getLatestRemoteVersion();
-  if (latest && isOutdated(localVersion, latest)) {
-    console.log(colors.warning(`✨ A new version of devD is available: v${latest} (Current: v${localVersion})`));
-    console.log(colors.info(`   Run: devD update`));
-    console.log();
+export function getLocalCommitSha() {
+  try {
+    const sha = execSync('git rev-parse HEAD', { stdio: 'pipe' }).toString().trim();
+    if (sha) return sha;
+  } catch (e) {
+    // Ignore
   }
+  
+  try {
+    const pkgPath = join(__dirname, '../package.json');
+    const pkgContent = JSON.parse(readFileSync(pkgPath, 'utf8'));
+    if (pkgContent._resolved) {
+      const match = pkgContent._resolved.match(/#([a-f0-9]+)$/);
+      if (match) return match[1];
+    }
+  } catch (e) {
+    // Ignore
+  }
+  return null;
+}
+
+export async function getLatestRemoteCommitSha() {
+  try {
+    const controller = new AbortController();
+    const id = setTimeout(() => controller.abort(), 1500); // 1.5s timeout
+    const res = await fetch('https://api.github.com/repos/dwaipayanray95/devD/commits/main', {
+      headers: { 'User-Agent': 'devD-CLI' },
+      signal: controller.signal
+    });
+    clearTimeout(id);
+    if (!res.ok) return null;
+    const data = await res.json();
+    return data.sha ? data.sha : null;
+  } catch (error) {
+    return null;
+  }
+}
+
+export async function checkForUpdates(localVersion) {
+  // 1. Check tag release
+  const latestTag = await getLatestRemoteVersion();
+  if (latestTag && isOutdated(localVersion, latestTag)) {
+    return { type: 'release', version: latestTag };
+  }
+  
+  // 2. Check commit hash
+  const localSha = getLocalCommitSha();
+  if (localSha) {
+    const remoteSha = await getLatestRemoteCommitSha();
+    if (remoteSha && localSha !== remoteSha && !remoteSha.startsWith(localSha) && !localSha.startsWith(remoteSha)) {
+      return { type: 'commit', version: remoteSha.substring(0, 7) };
+    }
+  }
+  return null;
 }
 
 /**
