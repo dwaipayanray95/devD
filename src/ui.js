@@ -25,14 +25,14 @@ export function getLocalVersion() {
 
 // Constants for UI theme colors
 export const colors = {
-  primary: chalk.hex('#00f0ff'),      // Neon Cyan
-  success: chalk.hex('#10b981'),      // Emerald Green
-  warning: chalk.hex('#f59e0b'),      // Amber Orange
-  error: chalk.hex('#f43f5e'),        // Rose Red
-  muted: chalk.hex('#64748b'),        // Slate Grey
-  info: chalk.hex('#3b82f6'),         // Indigo/Blue
-  accent: chalk.hex('#8b5cf6'),       // Violet Accent
-  bright: chalk.hex('#f8fafc').bold   // Off-white Bold
+  primary: chalk.hex('#1e3a8a'),      // Deep Blue
+  success: chalk.hex('#047857'),      // Forest Green
+  warning: chalk.hex('#b45309'),      // Warm Amber
+  error: chalk.hex('#be123c'),        // Crimson Red
+  muted: chalk.hex('#475569'),        // Muted Slate Grey
+  info: chalk.hex('#2563eb'),         // Rich Indigo
+  accent: chalk.hex('#6d28d9'),       // Deep Purple
+  bright: chalk.hex('#0f172a').bold   // Charcoal / Midnight Black Bold
 };
 
 /**
