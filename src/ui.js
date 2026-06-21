@@ -23,16 +23,65 @@ export function getLocalVersion() {
   }
 }
 
-// Constants for UI theme colors
+import { getStoredTheme } from './config.js';
+
+// Themes configuration
+const themePalettes = {
+  dark: {
+    primary: '#00f0ff',   // Neon Cyan
+    success: '#10b981',   // Emerald Green
+    warning: '#f59e0b',   // Amber Orange
+    error: '#f43f5e',     // Rose Red
+    muted: '#64748b',     // Slate Grey
+    info: '#3b82f6',      // Indigo/Blue
+    accent: '#8b5cf6',    // Violet Accent
+    bright: '#f8fafc'     // Off-white Bold
+  },
+  light: {
+    primary: '#1e3a8a',   // Deep Blue
+    success: '#047857',   // Forest Green
+    warning: '#b45309',   // Warm Amber
+    error: '#be123c',     // Red
+    muted: '#475569',     // Muted Slate Grey
+    info: '#2563eb',      // Rich Indigo
+    accent: '#6d28d9',    // Deep Purple
+    bright: '#0f172a'     // Charcoal/Midnight Black Bold
+  }
+};
+
 export const colors = {
-  primary: chalk.hex('#00f0ff'),      // Neon Cyan
-  success: chalk.hex('#10b981'),      // Emerald Green
-  warning: chalk.hex('#f59e0b'),      // Amber Orange
-  error: chalk.hex('#f43f5e'),        // Rose Red
-  muted: chalk.hex('#64748b'),        // Slate Grey
-  info: chalk.hex('#3b82f6'),         // Indigo/Blue
-  accent: chalk.hex('#8b5cf6'),       // Violet Accent
-  bright: chalk.hex('#f8fafc').bold   // Off-white Bold
+  get primary() {
+    const t = getStoredTheme();
+    return chalk.hex(themePalettes[t].primary);
+  },
+  get success() {
+    const t = getStoredTheme();
+    return chalk.hex(themePalettes[t].success);
+  },
+  get warning() {
+    const t = getStoredTheme();
+    return chalk.hex(themePalettes[t].warning);
+  },
+  get error() {
+    const t = getStoredTheme();
+    return chalk.hex(themePalettes[t].error);
+  },
+  get muted() {
+    const t = getStoredTheme();
+    return chalk.hex(themePalettes[t].muted);
+  },
+  get info() {
+    const t = getStoredTheme();
+    return chalk.hex(themePalettes[t].info);
+  },
+  get accent() {
+    const t = getStoredTheme();
+    return chalk.hex(themePalettes[t].accent);
+  },
+  get bright() {
+    const t = getStoredTheme();
+    return chalk.hex(themePalettes[t].bright).bold;
+  }
 };
 
 /**
@@ -80,14 +129,34 @@ export function printBanner() {
   console.clear();
   const title = `🚀  devD CLI v${getLocalVersion()}`;
   const width = 56;
+  
+  // Center Title
   const padding = Math.max(0, Math.floor((width - title.length) / 2));
-  const line = ' '.repeat(padding) + title + ' '.repeat(width - title.length - padding);
+  const titleLine = ' '.repeat(padding) + title + ' '.repeat(width - title.length - padding);
 
-  console.log(colors.muted('┌────────────────────────────────────────────────────────┐'));
-  console.log(colors.muted('│') + colors.primary(line) + colors.muted('│'));
-  console.log(colors.muted('│') + colors.muted('             Accelerating Developer Workflows           ') + colors.muted('│'));
-  console.log(colors.muted('└────────────────────────────────────────────────────────┘'));
-  console.log(`${colors.accent('📂 Active Workspace:')} ${colors.bright(getProjectInfo())}`);
+  // Subtitle
+  const subtitle = 'Accelerating Developer Workflows';
+  const subPadding = Math.max(0, Math.floor((width - subtitle.length) / 2));
+  const subtitleLine = ' '.repeat(subPadding) + subtitle + ' '.repeat(width - subtitle.length - subPadding);
+
+  // Workspace Info
+  const rawInfo = getProjectInfo();
+  const maxLen = 32;
+  const projectStr = rawInfo.length > maxLen ? rawInfo.substring(0, maxLen - 3) + '...' : rawInfo;
+  
+  const leftInfo = `📂  Workspace: ${projectStr}`;
+  const rightInfo = `Theme: ${getStoredTheme().toUpperCase()}`;
+  const statusLine = leftInfo + rightInfo.padStart(width - 2 - leftInfo.length);
+
+  console.log(colors.primary('╔════════════════════════════════════════════════════════╗'));
+  console.log(colors.primary('║') + colors.bright(titleLine) + colors.primary('║'));
+  console.log(colors.primary('║') + colors.muted(subtitleLine) + colors.primary('║'));
+  console.log(colors.primary('╠════════════════════════════════════════════════════════╣'));
+  
+  const paddedStatusLine = ' ' + statusLine.substring(0, width - 2) + ' ';
+  console.log(colors.primary('║') + colors.accent(paddedStatusLine) + colors.primary('║'));
+  
+  console.log(colors.primary('╚════════════════════════════════════════════════════════╝'));
   console.log();
 }
 
