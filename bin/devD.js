@@ -57,8 +57,8 @@ const program = new Command();
 
 function runBumper(type) {
   return new Promise((resolve) => {
-    const cmd = 'npx';
-    const args = ['--yes', '-p', 'github:dwaipayanray95/bump-version', 'bump-version'];
+    const cmd = 'node';
+    const args = [join(__dirname, '../node_modules/bump-version/bin/bump.js')];
     if (type && type !== 'interactive') {
       args.push(type.trim().toLowerCase());
     }
@@ -430,7 +430,33 @@ async function handleMenuAction(action) {
 
 async function runMenuLoop() {
   printBanner();
-  await checkForUpdates(getLocalVersion());
+  
+  try {
+    const update = await checkForUpdates(getLocalVersion());
+    if (update) {
+      if (update.type === 'release') {
+        console.log(colors.warning(`✨ A new version of devD is available: v${update.version}`));
+      } else {
+        console.log(colors.warning(`✨ A new commit update is available on main branch (hash: ${update.version})`));
+      }
+      
+      const answer = await inquirer.prompt([
+        {
+          type: 'confirm',
+          name: 'autoUpdate',
+          message: 'Would you like to download and install the update now?',
+          default: true
+        }
+      ]);
+      if (answer.autoUpdate) {
+        await runSelfUpdate(update.type === 'commit');
+        return;
+      }
+      console.log();
+    }
+  } catch (err) {
+    // Ignore
+  }
   
   const gitActive = await isGitRepository();
   const result = await showInteractiveMenu(gitActive);
