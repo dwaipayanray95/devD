@@ -877,8 +877,17 @@ export async function createGitHubRelease() {
       return;
     }
 
+    const branches = await getAllBranches();
     const currentAheadBehind = await getAheadBehind();
     const currentBranch = currentAheadBehind.branch;
+
+    const branchChoices = [
+      ...branches.map(b => ({
+        name: b.isCurrent ? `🌿 ${b.name} (current)` : (b.isRemote ? `🌎 ${b.name}` : `🌿 ${b.name}`),
+        value: b.name
+      })),
+      { name: '✍️  Type a custom branch or commit SHA...', value: 'custom' }
+    ];
 
     const answers = await promptWithEscape([
       {
@@ -894,10 +903,20 @@ export async function createGitHubRelease() {
         default: (answers) => `Release ${answers.tagName}`
       },
       {
+        type: 'list',
+        name: 'targetBranchSelect',
+        message: 'Select target branch:',
+        choices: branchChoices,
+        default: currentBranch,
+        loop: false,
+        pageSize: process.stdout.rows ? Math.max(10, process.stdout.rows - 10) : 15
+      },
+      {
         type: 'input',
-        name: 'targetBranch',
+        name: 'customTargetBranch',
         message: 'Enter target branch or commit SHA:',
-        default: currentBranch
+        validate: val => val.trim().length > 0 ? true : 'Target branch/SHA is required.',
+        when: (answers) => answers.targetBranchSelect === 'custom'
       },
       {
         type: 'input',
@@ -918,6 +937,10 @@ export async function createGitHubRelease() {
         default: false
       }
     ]);
+
+    const targetBranch = answers.targetBranchSelect === 'custom'
+      ? answers.customTargetBranch.trim()
+      : answers.targetBranchSelect;
 
     let token = process.env.GITHUB_TOKEN || process.env.GH_TOKEN;
     if (!token) {
@@ -949,7 +972,7 @@ export async function createGitHubRelease() {
         },
         body: JSON.stringify({
           tag_name: answers.tagName.trim(),
-          target_commitish: answers.targetBranch.trim(),
+          target_commitish: targetBranch,
           name: answers.title.trim(),
           body: answers.body || '',
           draft: answers.draft,
