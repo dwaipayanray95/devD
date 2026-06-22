@@ -84,11 +84,32 @@ function download(url, dest, callback) {
       return;
     }
 
+    const totalBytes = parseInt(res.headers['content-length'], 10);
+    let downloadedBytes = 0;
+
     const file = fs.createWriteStream(dest);
+
+    res.on('data', (chunk) => {
+      downloadedBytes += chunk.length;
+      if (totalBytes) {
+        const percent = ((downloadedBytes / totalBytes) * 100).toFixed(1);
+        const width = 30;
+        const complete = Math.round((downloadedBytes / totalBytes) * width);
+        const incomplete = width - complete;
+        const bar = '█'.repeat(complete) + '░'.repeat(incomplete);
+        process.stdout.write(`\rDownloading: [${bar}] ${percent}% (${(downloadedBytes / 1024 / 1024).toFixed(2)} / ${(totalBytes / 1024 / 1024).toFixed(2)} MB)`);
+      } else {
+        process.stdout.write(`\rDownloading: ${(downloadedBytes / 1024 / 1024).toFixed(2)} MB`);
+      }
+    });
+
     res.pipe(file);
 
     file.on('finish', () => {
-      file.close(callback);
+      file.close(() => {
+        process.stdout.write('\n');
+        callback();
+      });
     });
   }).on('error', (err) => {
     fs.unlink(dest, () => {});
