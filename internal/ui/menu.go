@@ -144,7 +144,7 @@ func (m MenuModel) View() string {
 
 	// Input buffer
 	s.WriteString(Accent.Render("  ⌨️  COMMAND / SHORTCUT\n"))
-	s.WriteString("     devD > " + Bright.Render(m.InputBuffer) + Muted.Render("_") + "\n\n")
+	s.WriteString("    devD > " + Bright.Render(m.InputBuffer) + Muted.Render("_") + "\n\n")
 
 	// Helper hints
 	if m.EscPressed {

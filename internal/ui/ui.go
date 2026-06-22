@@ -20,7 +20,67 @@ var (
 	Info    = lipgloss.NewStyle().Foreground(lipgloss.Color("#38bdf8"))
 	Accent  = lipgloss.NewStyle().Foreground(lipgloss.Color("#818cf8"))
 	Bright  = lipgloss.NewStyle().Foreground(lipgloss.Color("#ffffff")).Bold(true)
+	BorderColor = lipgloss.Color("#818cf8")
 )
+
+type ThemePalette struct {
+	Primary string
+	Success string
+	Warning string
+	Error   string
+	Muted   string
+	Info    string
+	Accent  string
+	Bright  string
+	Border  string
+}
+
+var DarkTheme = ThemePalette{
+	Primary: "#cbd5e1",
+	Success: "#34d399",
+	Warning: "#fbbf24",
+	Error:   "#f87171",
+	Muted:   "#94a3b8",
+	Info:    "#38bdf8",
+	Accent:  "#818cf8",
+	Bright:  "#ffffff",
+	Border:  "#818cf8",
+}
+
+var LightTheme = ThemePalette{
+	Primary: "#334155",
+	Success: "#059669",
+	Warning: "#d97706",
+	Error:   "#dc2626",
+	Muted:   "#64748b",
+	Info:    "#0284c7",
+	Accent:  "#4f46e5",
+	Bright:  "#0f172a",
+	Border:  "#4f46e5",
+}
+
+func InitTheme(themeMode string) {
+	palette := DarkTheme
+	if themeMode == "light" {
+		palette = LightTheme
+	} else if themeMode == "system" {
+		if lipgloss.HasDarkBackground() {
+			palette = DarkTheme
+		} else {
+			palette = LightTheme
+		}
+	}
+
+	Primary = lipgloss.NewStyle().Foreground(lipgloss.Color(palette.Primary))
+	Success = lipgloss.NewStyle().Foreground(lipgloss.Color(palette.Success))
+	Warning = lipgloss.NewStyle().Foreground(lipgloss.Color(palette.Warning))
+	Error = lipgloss.NewStyle().Foreground(lipgloss.Color(palette.Error))
+	Muted = lipgloss.NewStyle().Foreground(lipgloss.Color(palette.Muted))
+	Info = lipgloss.NewStyle().Foreground(lipgloss.Color(palette.Info))
+	Accent = lipgloss.NewStyle().Foreground(lipgloss.Color(palette.Accent))
+	Bright = lipgloss.NewStyle().Foreground(lipgloss.Color(palette.Bright)).Bold(true)
+	BorderColor = lipgloss.Color(palette.Border)
+}
 
 func GetProjectInfo() string {
 	cwd, err := os.Getwd()
@@ -81,11 +141,11 @@ func RenderBanner(version string) string {
 
 	borderStyle := lipgloss.NewStyle().
 		Border(lipgloss.DoubleBorder()).
-		BorderForeground(lipgloss.Color("#818cf8")).
+		BorderForeground(BorderColor).
 		Width(width)
 
 	title := "🚀  devD CLI v" + version
-	titleStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#ffffff")).Bold(true)
+	titleStyle := Bright
 	titleCellWidth := lipgloss.Width(title)
 	titlePadding := (width - titleCellWidth) / 2
 	if titlePadding < 0 {
@@ -94,7 +154,7 @@ func RenderBanner(version string) string {
 	titleLine := strings.Repeat(" ", titlePadding) + titleStyle.Render(title)
 
 	subtitle := "Accelerating Developer Workflows"
-	subtitleStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#94a3b8"))
+	subtitleStyle := Muted
 	subCellWidth := lipgloss.Width(subtitle)
 	subPadding := (width - subCellWidth) / 2
 	if subPadding < 0 {
@@ -104,7 +164,7 @@ func RenderBanner(version string) string {
 
 	workspaceLine := " 📂  Workspace: " + Accent.Render(projectStr)
 
-	dividerStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#818cf8"))
+	dividerStyle := lipgloss.NewStyle().Foreground(BorderColor)
 	dividerLine := dividerStyle.Render(strings.Repeat("═", width))
 
 	boxContent := titleLine + "\n" + subtitleLine + "\n" + dividerLine + "\n" + workspaceLine

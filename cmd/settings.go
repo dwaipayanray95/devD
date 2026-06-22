@@ -65,6 +65,7 @@ func ShowPreferencesMenu() {
 
 		choices := []string{
 			"🔑 Configure GitHub Token",
+			"✨ Toggle Theme (Dark / Light / System)",
 			"↩ Back to settings menu",
 		}
 
@@ -116,6 +117,41 @@ func ShowPreferencesMenu() {
 			}
 			ui.PressEnterToContinue()
 		}
+
+		if strings.Contains(chosen, "Toggle Theme") {
+			ui.PrintBanner(Version)
+			fmt.Println(ui.Accent.Render("  │  Toggle Theme Preference"))
+			fmt.Println()
+
+			currentTheme := config.GetTheme()
+			if currentTheme == "" {
+				currentTheme = "system"
+			}
+			fmt.Printf(ui.Info.Render("Current active theme mode: %s\n\n"), currentTheme)
+
+			opts := []string{
+				"🌑 Dark Mode",
+				"☀️ Light Mode",
+				"🖥️  System Mode",
+				"↩ Return",
+			}
+			opt, err := ui.PromptSelect("Select theme preference:", opts)
+			if err != nil || strings.Contains(opt, "Return") {
+				continue
+			}
+
+			newTheme := "system"
+			if strings.Contains(opt, "Dark") {
+				newTheme = "dark"
+			} else if strings.Contains(opt, "Light") {
+				newTheme = "light"
+			}
+
+			config.SaveTheme(newTheme)
+			ui.InitTheme(newTheme)
+			fmt.Println(ui.Success.Render("\n✔ Theme updated successfully."))
+			ui.PressEnterToContinue()
+		}
 	}
 }
 
@@ -155,14 +191,18 @@ func ShowHelpMenu() {
 
 func RestartCLI() {
 	fmt.Println(ui.Info.Render("\nRestarting devD..."))
-	argv0, err := exec.LookPath(os.Args[0])
-	if err != nil {
-		argv0 = os.Args[0]
-	}
-	_ = syscall.Exec(argv0, os.Args, os.Environ())
 	
-	// Fallback to exec spawning if syscall.Exec fails
-	cmd := exec.Command(os.Args[0], os.Args[1:]...)
+	exePath, err := os.Executable()
+	if err != nil {
+		exePath = os.Args[0]
+	}
+	
+	// Use syscall.Exec to replace the current process image cleanly with the resolved binary.
+	// We pass os.Args to preserve command line flags.
+	_ = syscall.Exec(exePath, os.Args, os.Environ())
+	
+	// Fallback to spawning process if syscall.Exec fails
+	cmd := exec.Command(exePath, os.Args[1:]...)
 	cmd.Stdin = os.Stdin
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr

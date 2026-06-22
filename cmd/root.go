@@ -29,6 +29,39 @@ var RootCmd = &cobra.Command{
 
 func Execute(ver string) {
 	Version = config.GetVersion()
+	
+	// Load stored theme or run onboarding
+	activeTheme := config.GetTheme()
+	if activeTheme == "" {
+		// Run onboarding theme selection prompt
+		ui.PrintBanner(Version)
+		fmt.Println(ui.Accent.Render("  │  Welcome to devD Companion CLI!"))
+		fmt.Println(ui.Muted.Render("  │  Please select a color theme preference to get started."))
+		fmt.Println()
+
+		opts := []string{
+			"🌑 Dark Mode (Standard high contrast slate dark)",
+			"☀️ Light Mode (High visibility contrast indigo light)",
+			"🖥️  System Mode (Align automatically to terminal context)",
+		}
+		
+		chosen, err := ui.PromptSelect("Select theme preference:", opts)
+		if err == nil {
+			newTheme := "system"
+			if strings.Contains(chosen, "Dark") {
+				newTheme = "dark"
+			} else if strings.Contains(chosen, "Light") {
+				newTheme = "light"
+			}
+			config.SaveTheme(newTheme)
+			activeTheme = newTheme
+		} else {
+			activeTheme = "system"
+		}
+	}
+	
+	ui.InitTheme(activeTheme)
+
 	if err := RootCmd.Execute(); err != nil {
 		fmt.Println(err)
 		os.Exit(1)
