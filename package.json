@@ -4,8 +4,8 @@
   "description": "Developer companion CLI tool for Git & Version Bumping workflow automation.",
   "type": "module",
   "bin": {
-    "devd": "./devd",
-    "devD": "./devd"
+    "devd": "./bin/devd",
+    "devD": "./bin/devd"
   },
   "scripts": {
     "postinstall": "node bin/install-binary.js",

@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+# Zero-overhead shell wrapper to forward execution to the compiled Go binary
+# This file is tracked in Git to satisfy npm's installer validation.
+
+# Find the directory of this script and run the sibling Go binary
+exec "$(dirname "$0")/../devd" "$@"
