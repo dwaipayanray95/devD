@@ -69,6 +69,7 @@ func (m SelectModel) View() string {
 }
 
 func PromptSelect(title string, choices []string) (string, error) {
+	fmt.Print("\033[H\033[2J") // Clear console screen
 	m := SelectModel{
 		Title:   title,
 		Choices: choices,
@@ -149,6 +150,7 @@ func (m InputModel) View() string {
 }
 
 func PromptInput(title string, defaultValue string) (string, error) {
+	fmt.Print("\033[H\033[2J") // Clear console screen
 	m := InputModel{
 		Title:        title,
 		DefaultValue: defaultValue,
@@ -228,6 +230,7 @@ func (m ConfirmModel) View() string {
 }
 
 func PromptConfirm(title string, defaultValue bool) (bool, error) {
+	fmt.Print("\033[H\033[2J") // Clear console screen
 	m := ConfirmModel{
 		Title:        title,
 		DefaultValue: defaultValue,

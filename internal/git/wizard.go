@@ -23,6 +23,7 @@ func RunCommitWizard() {
 
 	// 1. Commit Type
 	types := []string{
+		"custom: Direct custom message (no type/scope prefix)",
 		"feat: A new feature",
 		"fix: A bug fix",
 		"docs: Documentation only",
@@ -37,37 +38,51 @@ func RunCommitWizard() {
 	}
 	commitType := strings.Split(chosenType, ":")[0]
 
-	// 2. Scope
-	scope, err := ui.PromptInput("Enter scope (optional):", "")
-	if err != nil {
-		return
-	}
-
-	// 3. Subject
-	subject, err := ui.PromptInput("Enter short description / subject:", "")
-	if err != nil || subject == "" {
-		if subject == "" {
-			fmt.Println(ui.Error.Render("Subject description is required."))
-			ui.PressEnterToContinue()
-		}
-		return
-	}
-
-	// 4. Body
-	body, err := ui.PromptInput("Enter detailed body (optional):", "")
-	if err != nil {
-		return
-	}
-
-	// Format commit message
 	var msg string
-	if scope != "" {
-		msg = fmt.Sprintf("%s(%s): %s", commitType, scope, subject)
+
+	if commitType == "custom" {
+		// Custom commit option - direct message entry
+		customMsg, err := ui.PromptInput("Enter commit message:", "")
+		if err != nil || customMsg == "" {
+			if customMsg == "" {
+				fmt.Println(ui.Error.Render("Commit message is required."))
+				ui.PressEnterToContinue()
+			}
+			return
+		}
+		msg = customMsg
 	} else {
-		msg = fmt.Sprintf("%s: %s", commitType, subject)
-	}
-	if body != "" {
-		msg = fmt.Sprintf("%s\n\n%s", msg, body)
+		// 2. Scope
+		scope, err := ui.PromptInput("Enter scope (optional):", "")
+		if err != nil {
+			return
+		}
+
+		// 3. Subject
+		subject, err := ui.PromptInput("Enter short description / subject:", "")
+		if err != nil || subject == "" {
+			if subject == "" {
+				fmt.Println(ui.Error.Render("Subject description is required."))
+				ui.PressEnterToContinue()
+			}
+			return
+		}
+
+		// 4. Body
+		body, err := ui.PromptInput("Enter detailed body (optional):", "")
+		if err != nil {
+			return
+		}
+
+		// Format commit message
+		if scope != "" {
+			msg = fmt.Sprintf("%s(%s): %s", commitType, scope, subject)
+		} else {
+			msg = fmt.Sprintf("%s: %s", commitType, subject)
+		}
+		if body != "" {
+			msg = fmt.Sprintf("%s\n\n%s", msg, body)
+		}
 	}
 
 	ui.PrintBanner(ui.GetProjectInfo())
@@ -92,17 +107,6 @@ func RunCommitWizard() {
 	commitRes := Commit(msg)
 	if commitRes.Success {
 		fmt.Println(ui.Success.Render("\n✔ Commit created successfully!"))
-		
-		pushConfirm, err := ui.PromptConfirm("Would you like to push changes to remote origin?", true)
-		if err == nil && pushConfirm {
-			fmt.Println("\nPushing changes...")
-			pushRes := Push()
-			if pushRes.Success {
-				fmt.Println(ui.Success.Render("✔ Successfully pushed changes to remote!"))
-			} else {
-				fmt.Println(ui.Error.Render("✖ Push failed: " + pushRes.Stderr))
-			}
-		}
 	} else {
 		fmt.Println(ui.Error.Render("\n✖ Commit failed: " + commitRes.Error.Error()))
 	}
