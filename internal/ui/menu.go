@@ -3,6 +3,7 @@ package ui
 import (
 	"strings"
 
+	"github.com/charmbracelet/lipgloss"
 	tea "github.com/charmbracelet/bubbletea"
 )
 
@@ -131,6 +132,11 @@ func (m MenuModel) View() string {
 	// Render perfect banner using Lip Gloss engine
 	s.WriteString(RenderBanner(m.Version))
 
+	var bgStyle lipgloss.Style
+	if AppBg != "" {
+		bgStyle = lipgloss.NewStyle().Background(lipgloss.Color(AppBg))
+	}
+
 	// Menu choices
 	s.WriteString(Accent.Render("  📋  SELECTABLE MENU\n"))
 	for i, choice := range m.Choices {
@@ -140,17 +146,17 @@ func (m MenuModel) View() string {
 			s.WriteString(Muted.Render("      " + choice.Name) + "\n")
 		}
 	}
-	s.WriteString("\n")
+	s.WriteString(bgStyle.Render("\n"))
 
 	// Input buffer
 	s.WriteString(Accent.Render("  ⌨️  COMMAND / SHORTCUT\n"))
-	s.WriteString("      devD > " + Bright.Render(m.InputBuffer) + Muted.Render("_") + "\n\n")
+	s.WriteString(bgStyle.Render("      devD > ") + Bright.Render(m.InputBuffer) + Muted.Render("_") + bgStyle.Render("\n\n"))
 
 	// Helper hints
 	if m.EscPressed {
-		s.WriteString(Warning.Render("     ⚠️  Press Escape again to quit / exit devD companion\n"))
+		s.WriteString(bgStyle.Render("     ") + Warning.Render("⚠️  Press Escape again to quit / exit devD companion\n"))
 	} else {
-		s.WriteString(Muted.Render("     ▲/▼ Navigate menu  •  Type custom command / cd   •  Enter Confirm\n"))
+		s.WriteString(bgStyle.Render("     ") + Muted.Render("▲/▼ Navigate menu  •  Type custom command / cd   •  Enter Confirm\n"))
 	}
 
 	return s.String()

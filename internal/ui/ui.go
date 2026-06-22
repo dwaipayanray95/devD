@@ -21,42 +21,46 @@ var (
 	Accent  = lipgloss.NewStyle().Foreground(lipgloss.Color("#818cf8"))
 	Bright  = lipgloss.NewStyle().Foreground(lipgloss.Color("#ffffff")).Bold(true)
 	BorderColor = lipgloss.Color("#818cf8")
+	AppBg       = "" // Empty means transparent/default terminal background
 )
 
 type ThemePalette struct {
-	Primary string
-	Success string
-	Warning string
-	Error   string
-	Muted   string
-	Info    string
-	Accent  string
-	Bright  string
-	Border  string
+	Primary    string
+	Success    string
+	Warning    string
+	Error      string
+	Muted      string
+	Info       string
+	Accent     string
+	Bright     string
+	Border     string
+	Background string
 }
 
 var DarkTheme = ThemePalette{
-	Primary: "#cbd5e1",
-	Success: "#34d399",
-	Warning: "#fbbf24",
-	Error:   "#f87171",
-	Muted:   "#94a3b8",
-	Info:    "#38bdf8",
-	Accent:  "#818cf8",
-	Bright:  "#ffffff",
-	Border:  "#818cf8",
+	Primary:    "#cbd5e1",
+	Success:    "#34d399",
+	Warning:    "#fbbf24",
+	Error:      "#f87171",
+	Muted:      "#94a3b8",
+	Info:       "#38bdf8",
+	Accent:     "#818cf8",
+	Bright:     "#ffffff",
+	Border:     "#818cf8",
+	Background: "", // Transparent dark fallback
 }
 
 var LightTheme = ThemePalette{
-	Primary: "#334155",
-	Success: "#059669",
-	Warning: "#d97706",
-	Error:   "#dc2626",
-	Muted:   "#64748b",
-	Info:    "#0284c7",
-	Accent:  "#4f46e5",
-	Bright:  "#0f172a",
-	Border:  "#4f46e5",
+	Primary:    "#334155",
+	Success:    "#16a34a",
+	Warning:    "#ea580c",
+	Error:      "#dc2626",
+	Muted:      "#475569",
+	Info:       "#0284c7",
+	Accent:     "#4f46e5",
+	Bright:     "#0f172a",
+	Border:     "#4f46e5",
+	Background: "#fafaf9", // Premium warm off-white cream
 }
 
 func InitTheme(themeMode string) {
@@ -71,14 +75,29 @@ func InitTheme(themeMode string) {
 		}
 	}
 
-	Primary = lipgloss.NewStyle().Foreground(lipgloss.Color(palette.Primary))
-	Success = lipgloss.NewStyle().Foreground(lipgloss.Color(palette.Success))
-	Warning = lipgloss.NewStyle().Foreground(lipgloss.Color(palette.Warning))
-	Error = lipgloss.NewStyle().Foreground(lipgloss.Color(palette.Error))
-	Muted = lipgloss.NewStyle().Foreground(lipgloss.Color(palette.Muted))
-	Info = lipgloss.NewStyle().Foreground(lipgloss.Color(palette.Info))
-	Accent = lipgloss.NewStyle().Foreground(lipgloss.Color(palette.Accent))
-	Bright = lipgloss.NewStyle().Foreground(lipgloss.Color(palette.Bright)).Bold(true)
+	AppBg = palette.Background
+
+	// Set foregrounds and backgrounds
+	if AppBg != "" {
+		bgCol := lipgloss.Color(AppBg)
+		Primary = lipgloss.NewStyle().Foreground(lipgloss.Color(palette.Primary)).Background(bgCol)
+		Success = lipgloss.NewStyle().Foreground(lipgloss.Color(palette.Success)).Background(bgCol)
+		Warning = lipgloss.NewStyle().Foreground(lipgloss.Color(palette.Warning)).Background(bgCol)
+		Error = lipgloss.NewStyle().Foreground(lipgloss.Color(palette.Error)).Background(bgCol)
+		Muted = lipgloss.NewStyle().Foreground(lipgloss.Color(palette.Muted)).Background(bgCol)
+		Info = lipgloss.NewStyle().Foreground(lipgloss.Color(palette.Info)).Background(bgCol)
+		Accent = lipgloss.NewStyle().Foreground(lipgloss.Color(palette.Accent)).Background(bgCol)
+		Bright = lipgloss.NewStyle().Foreground(lipgloss.Color(palette.Bright)).Background(bgCol).Bold(true)
+	} else {
+		Primary = lipgloss.NewStyle().Foreground(lipgloss.Color(palette.Primary))
+		Success = lipgloss.NewStyle().Foreground(lipgloss.Color(palette.Success))
+		Warning = lipgloss.NewStyle().Foreground(lipgloss.Color(palette.Warning))
+		Error = lipgloss.NewStyle().Foreground(lipgloss.Color(palette.Error))
+		Muted = lipgloss.NewStyle().Foreground(lipgloss.Color(palette.Muted))
+		Info = lipgloss.NewStyle().Foreground(lipgloss.Color(palette.Info))
+		Accent = lipgloss.NewStyle().Foreground(lipgloss.Color(palette.Accent))
+		Bright = lipgloss.NewStyle().Foreground(lipgloss.Color(palette.Bright)).Bold(true)
+	}
 	BorderColor = lipgloss.Color(palette.Border)
 }
 
@@ -144,6 +163,10 @@ func RenderBanner(version string) string {
 		BorderForeground(BorderColor).
 		Width(width)
 
+	if AppBg != "" {
+		borderStyle = borderStyle.Background(lipgloss.Color(AppBg))
+	}
+
 	title := "🚀  devD CLI v" + version
 	titleStyle := Bright
 	titleCellWidth := lipgloss.Width(title)
@@ -151,7 +174,12 @@ func RenderBanner(version string) string {
 	if titlePadding < 0 {
 		titlePadding = 0
 	}
-	titleLine := strings.Repeat(" ", titlePadding) + titleStyle.Render(title)
+	// Pad spaces with background style if present
+	var spacePaddingStyle lipgloss.Style
+	if AppBg != "" {
+		spacePaddingStyle = lipgloss.NewStyle().Background(lipgloss.Color(AppBg))
+	}
+	titleLine := spacePaddingStyle.Render(strings.Repeat(" ", titlePadding)) + titleStyle.Render(title)
 
 	subtitle := "Accelerating Developer Workflows"
 	subtitleStyle := Muted
@@ -160,11 +188,14 @@ func RenderBanner(version string) string {
 	if subPadding < 0 {
 		subPadding = 0
 	}
-	subtitleLine := strings.Repeat(" ", subPadding) + subtitleStyle.Render(subtitle)
+	subtitleLine := spacePaddingStyle.Render(strings.Repeat(" ", subPadding)) + subtitleStyle.Render(subtitle)
 
 	workspaceLine := " 📂  Workspace: " + Accent.Render(projectStr)
 
 	dividerStyle := lipgloss.NewStyle().Foreground(BorderColor)
+	if AppBg != "" {
+		dividerStyle = dividerStyle.Background(lipgloss.Color(AppBg))
+	}
 	dividerLine := dividerStyle.Render(strings.Repeat("═", width))
 
 	boxContent := titleLine + "\n" + subtitleLine + "\n" + dividerLine + "\n" + workspaceLine
@@ -174,6 +205,11 @@ func RenderBanner(version string) string {
 
 func PrintBanner(version string) {
 	fmt.Print("\033[H\033[2J") // Clear terminal screen and reset cursor
+	if AppBg != "" {
+		// ANSI escape sequence to set terminal window background color block (if supported by terminal emulator)
+		// Or clear the screen with background color
+		fmt.Printf("\033[48;5;15m") // Cream background clear fallback
+	}
 	fmt.Print(RenderBanner(version))
 }
 
