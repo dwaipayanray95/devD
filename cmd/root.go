@@ -55,6 +55,10 @@ func RunMenuLoop() {
 		if menuModel.ChosenType == "input" {
 			action := ParseCommand(menuModel.ChosenValue)
 			if action != "" {
+				if strings.HasPrefix(strings.ToLower(strings.TrimSpace(action)), "cd") {
+					HandleCDAction(action)
+					continue
+				}
 				if IsGitAction(action) && !EnsureGitRepo() {
 					continue
 				}
@@ -69,6 +73,36 @@ func RunMenuLoop() {
 				continue
 			}
 			HandleMenuAction(action)
+		}
+	}
+}
+
+func HandleCDAction(action string) {
+	trimmed := strings.TrimSpace(action)
+	parts := strings.Fields(trimmed)
+	if len(parts) == 1 {
+		// Just "cd" - launch interactive navigator
+		cwd, err := os.Getwd()
+		if err != nil {
+			cwd = "."
+		}
+		nav := ui.NewNavigatorModel(cwd)
+		p := tea.NewProgram(nav)
+		finalModel, err := p.Run()
+		if err == nil {
+			if navModel, ok := finalModel.(ui.NavigatorModel); ok && navModel.Confirmed {
+				if err := os.Chdir(navModel.CurrentDir); err != nil {
+					fmt.Printf("\nError changing directory: %v\n", err)
+					ui.PressEnterToContinue()
+				}
+			}
+		}
+	} else {
+		// cd <path>
+		path := strings.Join(parts[1:], " ")
+		if err := os.Chdir(path); err != nil {
+			fmt.Printf("\nError changing directory to %s: %v\n", path, err)
+			ui.PressEnterToContinue()
 		}
 	}
 }
@@ -112,6 +146,9 @@ func ParseCommand(cmdInput string) string {
 		return "logs"
 	case "exit", "q", "quit":
 		return "exit"
+	}
+	if strings.HasPrefix(lowerCmd, "cd") {
+		return cmdInput // Return the full input so we can parse the path
 	}
 	return ""
 }

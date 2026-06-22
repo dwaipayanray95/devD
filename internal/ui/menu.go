@@ -150,7 +150,7 @@ func (m MenuModel) View() string {
 	if m.EscPressed {
 		s.WriteString(Warning.Render("     ⚠️  Press Escape again to quit / exit devD companion\n"))
 	} else {
-		s.WriteString(Muted.Render("     ▲/▼ Navigate menu  •  Type custom command / dir  •  Enter Confirm\n"))
+		s.WriteString(Muted.Render("     ▲/▼ Navigate menu  •  Type custom command / cd   •  Enter Confirm\n"))
 	}
 
 	return s.String()
