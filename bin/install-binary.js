@@ -9,11 +9,6 @@ import { execSync } from 'child_process';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
-// Read version from package.json
-const pkgPath = path.join(__dirname, '../package.json');
-const pkg = JSON.parse(fs.readFileSync(pkgPath, 'utf8'));
-const version = pkg.version;
-
 // Determine platform and architecture
 const platformMap = {
   darwin: 'darwin',
@@ -36,11 +31,45 @@ if (!osPlatform || !osArch) {
 
 const ext = osPlatform === 'windows' ? '.exe' : '';
 const binaryName = `devd-${osPlatform}-${osArch}${ext}`;
-const downloadUrl = `https://github.com/dwaipayanray95/devD/releases/download/v${version}/${binaryName}`;
 const targetPath = path.join(__dirname, `../devd${ext}`);
 
-console.log(`Downloading devD v${version} binary for ${osPlatform}-${osArch}...`);
-console.log(`URL: ${downloadUrl}`);
+// Fetch the latest release tag name dynamically from the GitHub API
+const apiOptions = {
+  hostname: 'api.github.com',
+  path: '/repos/dwaipayanray95/devD/releases/latest',
+  headers: {
+    'User-Agent': 'devD-Installer-NodeJS',
+  },
+};
+
+function getLatestTag(callback) {
+  https.get(apiOptions, (res) => {
+    if (res.statusCode !== 200) {
+      callback(new Error(`Failed to fetch latest release metadata (status code ${res.statusCode})`));
+      return;
+    }
+
+    let body = '';
+    res.on('data', (chunk) => {
+      body += chunk;
+    });
+
+    res.on('end', () => {
+      try {
+        const data = JSON.parse(body);
+        if (data && data.tag_name) {
+          callback(null, data.tag_name);
+        } else {
+          callback(new Error('Invalid release metadata format'));
+        }
+      } catch (err) {
+        callback(err);
+      }
+    });
+  }).on('error', (err) => {
+    callback(err);
+  });
+}
 
 function download(url, dest, callback) {
   https.get(url, (res) => {
@@ -67,28 +96,45 @@ function download(url, dest, callback) {
   });
 }
 
-download(downloadUrl, targetPath, (err) => {
+console.log('Resolving latest devD release from GitHub...');
+getLatestTag((err, tagName) => {
+  let downloadUrl;
   if (err) {
-    console.warn(`\n⚠️  Could not download pre-compiled binary: ${err.message}`);
-    console.log('Attempting to compile devD locally from source using Go...');
-    
-    try {
-      execSync('go build -o devd main.go', { stdio: 'inherit', cwd: path.join(__dirname, '..') });
-      console.log('✔ devD successfully compiled from source!');
-      process.exit(0);
-    } catch (buildErr) {
-      console.error(`\n✖ Local compilation failed: ${buildErr.message}`);
-      console.error('To install devD, please install Go locally or make sure the release version is published on GitHub.');
-      process.exit(1);
+    console.warn(`⚠️  Could not resolve latest release tag: ${err.message}`);
+    // Fallback: Use package version if resolution fails
+    const pkgPath = path.join(__dirname, '../package.json');
+    const pkg = JSON.parse(fs.readFileSync(pkgPath, 'utf8'));
+    tagName = `v${pkg.version}`;
+    console.log(`Falling back to package.json version: ${tagName}`);
+  }
+
+  downloadUrl = `https://github.com/dwaipayanray95/devD/releases/download/${tagName}/${binaryName}`;
+  console.log(`Downloading pre-compiled binary for ${osPlatform}-${osArch}...`);
+  console.log(`URL: ${downloadUrl}`);
+
+  download(downloadUrl, targetPath, (downloadErr) => {
+    if (downloadErr) {
+      console.warn(`\n⚠️  Could not download pre-compiled binary: ${downloadErr.message}`);
+      console.log('Attempting to compile devD locally from source using Go...');
+      
+      try {
+        execSync('go build -o devd main.go', { stdio: 'inherit', cwd: path.join(__dirname, '..') });
+        console.log('✔ devD successfully compiled from source!');
+        process.exit(0);
+      } catch (buildErr) {
+        console.error(`\n✖ Local compilation failed: ${buildErr.message}`);
+        console.error('To install devD, please install Go locally or make sure the release version is published on GitHub.');
+        process.exit(1);
+      }
+      return;
     }
-    return;
-  }
 
-  // Make it executable
-  if (osPlatform !== 'windows') {
-    fs.chmodSync(targetPath, 0o755);
-  }
+    // Make it executable
+    if (osPlatform !== 'windows') {
+      fs.chmodSync(targetPath, 0o755);
+    }
 
-  console.log(`\n✔ devD v${version} successfully installed!`);
-  process.exit(0);
+    console.log(`\n✔ devD ${tagName} successfully installed!`);
+    process.exit(0);
+  });
 });
