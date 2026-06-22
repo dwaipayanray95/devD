@@ -2,13 +2,23 @@
 # Zero-overhead shell wrapper to forward execution to the compiled Go binary
 # This file is tracked in Git to satisfy npm's installer validation.
 
-DIR="$(dirname "$0")"
+# Resolve symlink recursively to find the real package directory
+TARGET="$0"
+while [ -L "$TARGET" ]; do
+    DIR="$(dirname "$TARGET")"
+    TARGET="$(readlink "$TARGET")"
+    case "$TARGET" in
+        /*) ;;
+        *) TARGET="$DIR/$TARGET" ;;
+    esac
+done
+REAL_DIR="$(dirname "$TARGET")"
 
-# Check if the Go binary exists
-if [ ! -f "$DIR/../devd" ]; then
+# Check if the Go binary exists in the package folder
+if [ ! -f "$REAL_DIR/../devd" ]; then
     echo "devD Go binary not found. Installing latest version..."
-    node "$DIR/install-binary.js"
+    node "$REAL_DIR/install-binary.js"
 fi
 
-# Find the directory of this script and run the sibling Go binary
-exec "$DIR/../devd" "$@"
+# Run the sibling Go binary
+exec "$REAL_DIR/../devd" "$@"
