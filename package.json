@@ -15,5 +15,5 @@
     "bump-minor": "bump-version minor",
     "bump-patch": "bump-version patch",
     "bump-undo": "bump-version undo"
-  },
+  }
 }
