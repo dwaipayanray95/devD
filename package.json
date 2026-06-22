@@ -8,7 +8,6 @@
     "devD": "./bin/devd"
   },
   "scripts": {
-    "postinstall": "node bin/install-binary.js",
     "test": "echo \"Error: no test specified\" && exit 0",
     "bump-version": "bump-version",
     "bump-major": "bump-version major",
