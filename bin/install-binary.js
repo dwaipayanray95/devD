@@ -114,19 +114,9 @@ getLatestTag((err, tagName) => {
 
   download(downloadUrl, targetPath, (downloadErr) => {
     if (downloadErr) {
-      console.warn(`\n⚠️  Could not download pre-compiled binary: ${downloadErr.message}`);
-      console.log('Attempting to compile devD locally from source using Go...');
-      
-      try {
-        execSync('go build -o devd main.go', { stdio: 'inherit', cwd: path.join(__dirname, '..') });
-        console.log('✔ devD successfully compiled from source!');
-        process.exit(0);
-      } catch (buildErr) {
-        console.error(`\n✖ Local compilation failed: ${buildErr.message}`);
-        console.error('To install devD, please install Go locally or make sure the release version is published on GitHub.');
-        process.exit(1);
-      }
-      return;
+      console.error(`\n✖ Could not download pre-compiled binary: ${downloadErr.message}`);
+      console.error('Please make sure the release version is published on GitHub.');
+      process.exit(1);
     }
 
     // Make it executable

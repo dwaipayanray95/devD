@@ -8,6 +8,7 @@ import (
 
 type Config struct {
 	GithubToken string `json:"githubToken,omitempty"`
+	Theme       string `json:"theme,omitempty"`
 }
 
 func getConfigFile() (string, error) {
@@ -49,6 +50,41 @@ func SaveStoredToken(token string) bool {
 		_ = json.Unmarshal(data, &conf)
 	}
 	conf.GithubToken = token
+	bytes, err := json.MarshalIndent(conf, "", "  ")
+	if err != nil {
+		return false
+	}
+	err = os.WriteFile(file, bytes, 0644)
+	return err == nil
+}
+
+func GetTheme() string {
+	file, err := getConfigFile()
+	if err != nil {
+		return ""
+	}
+	data, err := os.ReadFile(file)
+	if err != nil {
+		return ""
+	}
+	var conf Config
+	if err := json.Unmarshal(data, &conf); err != nil {
+		return ""
+	}
+	return conf.Theme
+}
+
+func SaveTheme(theme string) bool {
+	file, err := getConfigFile()
+	if err != nil {
+		return false
+	}
+	var conf Config
+	data, err := os.ReadFile(file)
+	if err == nil {
+		_ = json.Unmarshal(data, &conf)
+	}
+	conf.Theme = theme
 	bytes, err := json.MarshalIndent(conf, "", "  ")
 	if err != nil {
 		return false
