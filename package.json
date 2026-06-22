@@ -4,7 +4,6 @@
   "description": "Developer companion CLI tool for Git & Version Bumping workflow automation.",
   "type": "module",
   "bin": {
-    "devd": "./bin/devd",
     "devD": "./bin/devd"
   },
   "scripts": {
