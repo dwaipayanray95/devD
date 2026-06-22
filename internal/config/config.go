@@ -92,3 +92,41 @@ func SaveTheme(theme string) bool {
 	err = os.WriteFile(file, bytes, 0644)
 	return err == nil
 }
+
+func GetVersion() string {
+	fallbackVersion := "1.1.0"
+	exePath, err := os.Executable()
+	if err != nil {
+		return fallbackVersion
+	}
+	exeDir := filepath.Dir(exePath)
+	
+	// Locate package.json relative to the executable (e.g. at ../package.json or package.json)
+	paths := []string{
+		filepath.Join(exeDir, "package.json"),
+		filepath.Join(exeDir, "..", "package.json"),
+	}
+
+	for _, p := range paths {
+		if data, err := os.ReadFile(p); err == nil {
+			var pkg struct {
+				Version string `json:"version"`
+			}
+			if err := json.Unmarshal(data, &pkg); err == nil && pkg.Version != "" {
+				return pkg.Version
+			}
+		}
+	}
+
+	// Try reading package.json from the current working directory as another fallback
+	if data, err := os.ReadFile("package.json"); err == nil {
+		var pkg struct {
+			Version string `json:"version"`
+		}
+		if err := json.Unmarshal(data, &pkg); err == nil && pkg.Version != "" {
+			return pkg.Version
+		}
+	}
+
+	return fallbackVersion
+}

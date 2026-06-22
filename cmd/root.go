@@ -9,6 +9,7 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/spf13/cobra"
 
+	"github.com/dwaipayanray95/devD/internal/config"
 	"github.com/dwaipayanray95/devD/internal/detector"
 	"github.com/dwaipayanray95/devD/internal/gemini"
 	"github.com/dwaipayanray95/devD/internal/git"
@@ -16,7 +17,7 @@ import (
 	"github.com/dwaipayanray95/devD/internal/ui"
 )
 
-var Version = "1.0.5"
+var Version = "1.1.0"
 
 var RootCmd = &cobra.Command{
 	Use:   "devd",
@@ -27,7 +28,7 @@ var RootCmd = &cobra.Command{
 }
 
 func Execute(ver string) {
-	Version = ver
+	Version = config.GetVersion()
 	if err := RootCmd.Execute(); err != nil {
 		fmt.Println(err)
 		os.Exit(1)

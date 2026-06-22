@@ -6,17 +6,23 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	tea "github.com/charmbracelet/bubbletea"
 )
 
+// Declare a global or package-level version hook that gets set on start
+var Version = "1.1.0"
+
 type NavigatorModel struct {
-	CurrentDir string
-	Entries    []fs.DirEntry
-	Cursor     int
-	Confirmed  bool
-	Canceled   bool
-	Error      error
+	CurrentDir   string
+	Entries      []fs.DirEntry
+	Cursor       int
+	Confirmed    bool
+	Canceled     bool
+	Error        error
+	SearchBuffer string
+	LastKeyTime  time.Time
 }
 
 func NewNavigatorModel(startDir string) NavigatorModel {
@@ -127,14 +133,20 @@ func (m NavigatorModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 
 		default:
-			// "using letters to snap to the folder directly"
-			// Let's support jumping to a directory that starts with the typed letter (case-insensitive)
+			// Supporting fast folder snapping:
+			// Accumulate characters if they are pressed within 800ms of each other.
 			if len(keyStr) == 1 {
-				char := strings.ToLower(keyStr)
-				// Look for any subdirectory matching the prefix
+				now := time.Now()
+				if now.Sub(m.LastKeyTime) > 800*time.Millisecond {
+					m.SearchBuffer = ""
+				}
+				m.SearchBuffer += strings.ToLower(keyStr)
+				m.LastKeyTime = now
+
+				// Look for any subdirectory matching the search buffer prefix
 				for i, entry := range m.Entries {
 					name := strings.ToLower(entry.Name())
-					if strings.HasPrefix(name, char) {
+					if strings.HasPrefix(name, m.SearchBuffer) {
 						m.Cursor = i + 1 // +1 because index 0 is ".."
 						break
 					}
@@ -147,7 +159,7 @@ func (m NavigatorModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 func (m NavigatorModel) View() string {
 	var s strings.Builder
-	s.WriteString(RenderBanner("1.0.5")) // Hardcoded or dynamic via a configuration. Let's write the menu layout.
+	s.WriteString(RenderBanner(Version))
 	
 	s.WriteString(Accent.Render(fmt.Sprintf("  📂  CD Navigator: %s\n\n", m.CurrentDir)))
 
