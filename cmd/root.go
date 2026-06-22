@@ -16,7 +16,7 @@ import (
 	"github.com/dwaipayanray95/devD/internal/ui"
 )
 
-var Version = "0.3.43"
+var Version = "1.0.5"
 
 var RootCmd = &cobra.Command{
 	Use:   "devd",

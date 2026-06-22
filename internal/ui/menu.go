@@ -27,7 +27,7 @@ func NewMenuModel(version string, gitActive bool) MenuModel {
 	var choices []MenuItem
 	if gitActive {
 		choices = []MenuItem{
-			{Name: "⚙️  Git Controls", Value: "git-controls"},
+			{Name: "🌿 Git Controls", Value: "git-controls"},
 			{Name: "🏃 Run App (Auto-Detect)", Value: "run-app"},
 			{Name: "📦 Build App (Auto-Detect)", Value: "build-app"},
 			{Name: "🚀 Bump Version", Value: "bump"},
