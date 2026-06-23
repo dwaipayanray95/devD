@@ -12,9 +12,8 @@
 `devD` is a premium, state-of-the-art interactive developer companion CLI written in **Go**. It automates Git repository tasks, conventional commits, staging files, stashing, and version bumping. It also integrates with the Gemini API to draft commit messages from diffs or answer coding questions directly inside your terminal, wrapped in a beautiful, modern terminal aesthetic.
 
 
-<img width="320" height="467" alt="Screenshot 2026-06-23 at 19 06 20" src="https://github.com/user-attachments/assets/4f6e2eed-e7f2-4728-835a-0ee71512298a" />
-<img width="320" height="467" alt="Screenshot 2026-06-23 at 19 11 39" src="https://github.com/user-attachments/assets/6acf0c36-c555-4c64-bc85-eef4557871b9" />
-<img width="320" height="467" alt="Screenshot 2026-06-23 at 19 06 44" src="https://github.com/user-attachments/assets/f9da9adb-97f4-4509-91ea-031e72a8a875" />
+<img width="450" height="467" alt="Screenshot 2026-06-23 at 19 06 20" src="https://github.com/user-attachments/assets/4f6e2eed-e7f2-4728-835a-0ee71512298a" />
+<img width="450" height="467" alt="Screenshot 2026-06-23 at 19 06 44" src="https://github.com/user-attachments/assets/f9da9adb-97f4-4509-91ea-031e72a8a875" />
 
 ---
 
