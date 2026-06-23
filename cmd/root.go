@@ -33,7 +33,12 @@ func Execute(ver string) {
 	// Clear the terminal screen and reset cursor position so it starts at the top
 	fmt.Print("\033[H\033[2J")
 	
-	Version = config.GetVersion()
+	// If a specific version string was passed from main.go (and it is not the default template "1.1.0"), use it as the primary version.
+	if ver != "1.1.0" && ver != "" {
+		Version = ver
+	} else {
+		Version = config.GetVersion()
+	}
 	
 	// Load stored theme or run onboarding
 	activeTheme := config.GetTheme()
@@ -435,7 +440,17 @@ func HandleMenuAction(action string) {
 
 func RunSelfUpdate() {
 	ui.PrintBanner(Version)
-	fmt.Println(ui.Info.Render("Updating devD CLI..."))
+	
+	// Query npm for the latest version to display to the user
+	targetVersion := "latest"
+	vCmd := exec.Command("npm", "view", "dev-d", "version")
+	if output, err := vCmd.Output(); err == nil {
+		if ver := strings.TrimSpace(string(output)); ver != "" {
+			targetVersion = "v" + ver
+		}
+	}
+
+	fmt.Println(ui.Info.Render("Updating devD CLI to " + targetVersion + "..."))
 	
 	// Production: run npm install -g dwaipayanray95/devD --no-progress
 	fmt.Println(ui.Muted.Render("Executing: npm install -g dwaipayanray95/devD --no-progress"))

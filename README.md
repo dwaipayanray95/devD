@@ -3,7 +3,17 @@
 [![GitHub Stars](https://img.shields.io/github/stars/dwaipayanray95/devD?style=social)](https://github.com/dwaipayanray95/devD)
 ![Visitors](https://komarev.com/ghpvc/?username=dwaipayanray95-devD&color=blueviolet&style=flat-square&label=Views)
 
-`devD` is an interactive CLI companion that automates Git repository tasks, conventional commits, staging files, stashing, and version bumping. It also integrates with the Gemini API to draft commit messages from diffs or answer coding questions directly inside your terminal.
+`devD` is a premium, state-of-the-art interactive developer companion CLI written in **Go**. It automates Git repository tasks, conventional commits, staging files, stashing, and version bumping. It also integrates with the Gemini API to draft commit messages from diffs or answer coding questions directly inside your terminal, wrapped in a beautiful, modern terminal aesthetic.
+
+---
+
+## 🎨 Premium Modern Design Language
+`devD` features a visual identity inspired by premium AI CLI agents (like Gemini CLI, AGY, and Claude Code):
+- **Solid Gradient Wordmark**: A gorgeous, high-contrast block banner (`devD`) dynamically colored with a theme-dependent gradient.
+- **Dynamic Terminal Auto-Scaling**: Auto-resizes the terminal window to a minimum of **42 rows and 65 columns** on start to ensure optimal layout layout and zero text clipping.
+- **Modern Color Palettes**: Supports premium curated **Dark** (Slate & Indigo), **Light** (Clean Off-White & Indigo), and **Solarized Light** (Warm Cream & Teal) themes.
+- **Clean Unicode Layouts**: Emojis are replaced by structured Unicode symbols (`◆`, `●`, `▸`, `▌`, `─`) and highlighted cursor blocks.
+- **Auto Scrollback Hygiene**: Automatically clears lingering interface histories when traversing folders, switching menus, or returning from shell executions.
 
 ---
 
@@ -15,7 +25,7 @@ Paste this command into your terminal to automatically check prerequisites and i
 curl -fsSL https://raw.githubusercontent.com/dwaipayanray95/devD/main/install.sh | bash
 ```
 
-### Method 2: Global Installation via GitHub (Direct NPM)
+### Method 2: Global Installation via GitHub (Direct NPM wrapper)
 Download and link the tool directly from the GitHub repository:
 ```bash
 npm install -g dwaipayanray95/devD
@@ -28,34 +38,26 @@ npm install -g dev-d
 ```
 
 ### Method 4: Local Clone & Setup (For Development)
-Clone the repository and register it globally on your local machine:
+Clone the repository and build the Go binary:
 ```bash
 git clone https://github.com/dwaipayanray95/devD.git
 cd devD
-npm install
-npm link
+go build -o devd main.go
 ```
 
 ---
 
 ## 🔑 Gemini AI Configuration (Optional)
-To use the AI-drafted commit message feature or general queries, set your Gemini API key in your terminal session or add it to your shells profile file (`~/.zshrc` or `~/.bashrc`):
+To use the AI-drafted commit message feature or general queries, set your Gemini API key in your terminal session or add it to your shell's profile file (`~/.zshrc` or `~/.bashrc`):
 ```bash
 export GEMINI_API_KEY="your-gemini-api-key"
 ```
 
 ---
 
-## 🛠 Interactive Dual Console UI
-Running the CLI on its own (`devD`) starts a dual interactive environment:
-* **📋 Selectable Menu (Top)**: Use your **Arrow keys** and **Enter** to navigate and select options.
-* **⌨️ Command Input Field (Bottom)**: Type command names or shortcuts directly and press **Enter** to run them instantly.
-
----
-
 ## 💻 Available Text Input Commands & Shortcuts
 
-When inside the interactive `devD >` prompt, you can type the following commands or shortcuts:
+When inside the interactive prompt, you can type the following commands or shortcuts:
 
 | Command | Shortcuts | Description |
 | :--- | :--- | :--- |
@@ -65,15 +67,16 @@ When inside the interactive `devD >` prompt, you can type the following commands
 | `pull` | — | Pull remote changes (git pull --rebase). |
 | `stash` | — | Save current modifications to the stash stack. |
 | `pop` | `stash-pop` | Restore/apply the last stashed modifications. |
-| `bump` | `b` | Bump package version dynamically using `bump-version`. |
+| `bump` | `b` | Bump package version dynamically. |
 | `ai` | `a`, `gemini` | Query the Gemini AI assistant directly in the console. |
-| `update` | `u` | Update devD CLI from the latest GitHub release tag. |
-| `update --latest` | — | Update devD CLI directly from the latest main branch commit. |
-| `dir` | — | Open the interactive Directory Navigator (use **Arrows** to navigate, **Enter** to open, **Space** to select/CD, and **Esc** to return). |
-| `dir <path>` | — | Change working directory to a specific path (e.g. `dir C:\Users`). |
+| `cd` | — | Open the interactive Folder Directory Navigator (use **Arrows** to navigate, **Enter** to open, **Space** to select/CD, and **Esc** to return). |
+| `cd <path>` | — | Change working directory to a specific path (e.g. `cd /Users`). |
+| `update` | `u` | Update devD CLI from the latest GitHub release tag (includes silent updates). |
 | `help` | `h`, `?` | Open the interactive commands description help page. |
 | `restart` | `r` | Restart the devD CLI companion session. |
+| `settings` | `set` | Open the settings dashboard (Themes, GitHub Tokens). |
 | `exit` | `q`, `quit` | Exit the devD companion CLI. |
+| *[Any command]* | — | **Direct Shell Fallback**: Type any standard shell command (e.g., `ls -la`, `cat main.go`) to execute it directly inside zsh from within devD. |
 
 ---
 
@@ -83,21 +86,20 @@ Alternatively, run specific actions immediately using standard terminal subcomma
 
 | CLI Command | Description |
 | :--- | :--- |
-| `devD status` (alias: `devD d`) | Displays the status dashboard (branch, sync, changes, recent commits). |
-| `devD commit` (alias: `devD c`) | Runs Conventional Commit Wizard (stages files, inputs message, or drafts via Gemini). |
-| `devD sync` (alias: `devD s`) | Pulls upstream updates (rebase) and pushes local commits. |
-| `devD bump [type]` (alias: `devD b [type]`) | Bumps package version (types: `patch`, `minor`, `major`, `interactive`). |
-| `devD stash` | Stashes modifications (use `--pop` or `-p` to restore). |
+| `devD status` | Displays the status dashboard (branch, sync, changes, recent commits). |
+| `devD commit` | Runs Conventional Commit Wizard (stages files, inputs message, or drafts via Gemini). |
+| `devD sync` | Pulls upstream updates (rebase) and pushes local commits. |
+| `devD bump [type]` | Bumps package version (types: `patch`, `minor`, `major`). |
+| `devD stash` | Stashes modifications. |
 | `devD ai "<prompt>"` | Asks Gemini a development question directly. |
-| `devD update` (alias: `devD u`) | Updates the CLI (use `--commit` or `-c` to update to the latest bleeding-edge commit). |
+| `devD update` | Updates the CLI. |
 
 ---
 
 ## 🎨 Technology Stack
-- **Node.js**: ES Modules (ESM)
-- **commander**: CLI argument parsing & routing
-- **inquirer**: Interactive checklist, choice, and input prompts
-- **chalk**: Dynamic string styling and console visual themes
-- **ora**: Elegant CLI loading spinners
-- **Native Fetch**: Simple HTTP integration with the Gemini API (Zero-dependency API helper)
+- **Go**: Core implementation language.
+- **Bubble Tea**: TUI framework for rendering and updating state.
+- **Lip Gloss**: Terminal styling and layouts engine.
+- **Cobra**: CLI argument parsing & routing.
+- **Gemini API Go SDK**: Lightweight Go wrapper to communicate with the Gemini models.
 
