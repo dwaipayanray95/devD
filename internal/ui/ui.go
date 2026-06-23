@@ -63,10 +63,25 @@ var LightTheme = ThemePalette{
 	Background: "#fafaf9", // Premium warm off-white cream
 }
 
+var SolarizedTheme = ThemePalette{
+	Primary:    "#586e75", // base01
+	Success:    "#859900", // green
+	Warning:    "#cb4b16", // orange
+	Error:      "#dc322f", // red
+	Muted:      "#93a1a1", // base1
+	Info:       "#268bd2", // blue
+	Accent:     "#6c71c4", // violet
+	Bright:     "#073642", // base02
+	Border:     "#2aa198", // cyan
+	Background: "#fdf6e3", // base3 (Solarized Light warm cream-yellow)
+}
+
 func InitTheme(themeMode string) {
 	palette := DarkTheme
 	if themeMode == "light" {
 		palette = LightTheme
+	} else if themeMode == "solarized" {
+		palette = SolarizedTheme
 	} else if themeMode == "system" {
 		if lipgloss.HasDarkBackground() {
 			palette = DarkTheme

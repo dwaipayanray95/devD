@@ -47,8 +47,6 @@ func (m *NavigatorModel) readDir() {
 	}
 	m.Error = nil
 
-	// Filter or order? Usually we want directory first, or at least we want to show dirs.
-	// Let's filter to only directories since we are cd-ing (changing directory).
 	var dirs []fs.DirEntry
 	for _, entry := range entries {
 		if entry.IsDir() {
@@ -57,8 +55,8 @@ func (m *NavigatorModel) readDir() {
 	}
 	m.Entries = dirs
 	
-	// Reset cursor or cap it
-	if m.Cursor >= len(m.Entries)+1 { // +1 for the ".." go up option
+	// Reset cursor or cap it (we have 2 static items at index 0 and 1)
+	if m.Cursor >= len(m.Entries)+2 {
 		m.Cursor = 0
 	}
 }
@@ -78,63 +76,39 @@ func (m NavigatorModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		case "up":
 			m.Cursor--
-			total := len(m.Entries) + 1 // +1 for ".."
+			total := len(m.Entries) + 2
 			if m.Cursor < 0 {
 				m.Cursor = total - 1
 			}
 
 		case "down":
 			m.Cursor++
-			total := len(m.Entries) + 1 // +1 for ".."
+			total := len(m.Entries) + 2
 			if m.Cursor >= total {
 				m.Cursor = 0
 			}
 
 		case "space", "enter":
-			// space or enter confirms selection or navigates.
-			// In standard folder navigator:
-			// - Enter on a directory navigates into it.
-			// - Enter on ".." navigates up.
-			// - Space/Enter can also confirm/CD if we want. Wait, the user prompt comments:
-			//   "confirm/CD" using Space or Enter.
-			//   Let's check the spec: "Enter: Navigate into folder or confirm current path selection.", "Space: Select the highlighted folder and exit."
-			//   So Space selects the highlighted folder and exits.
-			//   Enter on a directory navigates inside. If they want to confirm the current directory, how do they do that?
-			//   Let's check: "Space: Select the highlighted folder and exit." or maybe Enter on a special option or Space at any point to select the highlighted folder (or the current folder if on "..").
-			if keyStr == "space" {
-				// Confirm selection
-				if m.Cursor == 0 {
-					// We are on ".." (Parent directory)
-					// In this context, space on ".." can select the current directory, or parent directory.
-					// Let's select the current directory as the choice.
-					m.Confirmed = true
-					return m, tea.Quit
-				} else {
-					// Select the highlighted subdirectory
-					target := filepath.Join(m.CurrentDir, m.Entries[m.Cursor-1].Name())
-					m.CurrentDir = target
-					m.Confirmed = true
-					return m, tea.Quit
-				}
-			} else { // "enter"
-				if m.Cursor == 0 {
-					// Navigate up
-					parent := filepath.Dir(m.CurrentDir)
-					m.CurrentDir = parent
-					m.Cursor = 0
-					m.readDir()
-				} else {
-					// Navigate into the subdirectory
-					target := filepath.Join(m.CurrentDir, m.Entries[m.Cursor-1].Name())
-					m.CurrentDir = target
-					m.Cursor = 0
-					m.readDir()
-				}
+			if m.Cursor == 0 {
+				// Confirm selection of the current folder
+				m.Confirmed = true
+				return m, tea.Quit
+			} else if m.Cursor == 1 {
+				// Navigate up
+				parent := filepath.Dir(m.CurrentDir)
+				m.CurrentDir = parent
+				m.Cursor = 0
+				m.readDir()
+			} else {
+				// Navigate into the subdirectory
+				target := filepath.Join(m.CurrentDir, m.Entries[m.Cursor-2].Name())
+				m.CurrentDir = target
+				m.Cursor = 0
+				m.readDir()
 			}
 
 		default:
 			// Supporting fast folder snapping:
-			// Accumulate characters if they are pressed within 800ms of each other.
 			if len(keyStr) == 1 {
 				now := time.Now()
 				if now.Sub(m.LastKeyTime) > 800*time.Millisecond {
@@ -147,7 +121,7 @@ func (m NavigatorModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				for i, entry := range m.Entries {
 					name := strings.ToLower(entry.Name())
 					if strings.HasPrefix(name, m.SearchBuffer) {
-						m.Cursor = i + 1 // +1 because index 0 is ".."
+						m.Cursor = i + 2 // +2 because index 0 is "Select" and 1 is "Go up"
 						break
 					}
 				}
@@ -169,16 +143,23 @@ func (m NavigatorModel) View() string {
 		return s.String()
 	}
 
-	// Option 0: .. (Go Up)
+	// Option 0: Confirm selection of current directory
 	if m.Cursor == 0 {
-		s.WriteString(Primary.Render("    ❯ ") + Bright.Render(".. (Parent Directory)") + "\n")
+		s.WriteString(Primary.Render("    ❯ ") + Bright.Render("✔ Select this folder ("+filepath.Base(m.CurrentDir)+")") + "\n")
 	} else {
-		s.WriteString(Muted.Render("      .. (Parent Directory)") + "\n")
+		s.WriteString(Muted.Render("      ✔ Select this folder ("+filepath.Base(m.CurrentDir)+")") + "\n")
 	}
 
-	// Directories
+	// Option 1: .. (Go Up / Go Back)
+	if m.Cursor == 1 {
+		s.WriteString(Primary.Render("    ❯ ") + Bright.Render("↩ .. (Parent Directory)") + "\n")
+	} else {
+		s.WriteString(Muted.Render("      ↩ .. (Parent Directory)") + "\n")
+	}
+
+	// Directories (offset by 2)
 	for i, entry := range m.Entries {
-		idx := i + 1
+		idx := i + 2
 		name := entry.Name()
 		if idx == m.Cursor {
 			s.WriteString(Primary.Render("    ❯ ") + Bright.Render("📁 "+name) + "\n")
@@ -188,7 +169,7 @@ func (m NavigatorModel) View() string {
 	}
 
 	s.WriteString("\n")
-	s.WriteString(Muted.Render("  ▲/▼ Navigate  •  Enter Open/Go Up  •  Space Confirm/CD highlighted  •  Letter Jump  •  Esc Cancel\n"))
+	s.WriteString(Muted.Render("  ▲/▼ Navigate  •  Enter Open/Select  •  Letter Jump  •  Esc Cancel\n"))
 
 	return s.String()
 }

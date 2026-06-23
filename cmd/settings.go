@@ -132,6 +132,7 @@ func ShowPreferencesMenu() {
 			opts := []string{
 				"🌑 Dark Mode",
 				"☀️ Light Mode",
+				"☀️ Solarized Light Mode",
 				"🖥️  System Mode",
 				"↩ Return",
 			}
@@ -143,6 +144,8 @@ func ShowPreferencesMenu() {
 			newTheme := "system"
 			if strings.Contains(opt, "Dark") {
 				newTheme = "dark"
+			} else if strings.Contains(opt, "Solarized") {
+				newTheme = "solarized"
 			} else if strings.Contains(opt, "Light") {
 				newTheme = "light"
 			}

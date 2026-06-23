@@ -42,6 +42,7 @@ func Execute(ver string) {
 		opts := []string{
 			"🌑 Dark Mode (Standard high contrast slate dark)",
 			"☀️ Light Mode (High visibility contrast indigo light)",
+			"☀️ Solarized Light Mode (Solarized base warm cream-yellow contrast)",
 			"🖥️  System Mode (Align automatically to terminal context)",
 		}
 		
@@ -50,6 +51,8 @@ func Execute(ver string) {
 			newTheme := "system"
 			if strings.Contains(chosen, "Dark") {
 				newTheme = "dark"
+			} else if strings.Contains(chosen, "Solarized") {
+				newTheme = "solarized"
 			} else if strings.Contains(chosen, "Light") {
 				newTheme = "light"
 			}

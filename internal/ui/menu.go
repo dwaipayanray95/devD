@@ -8,7 +8,8 @@ import (
 )
 
 type MenuItem struct {
-	Name  string
+	Icon  string
+	Label string
 	Value string
 }
 
@@ -28,21 +29,21 @@ func NewMenuModel(version string, gitActive bool) MenuModel {
 	var choices []MenuItem
 	if gitActive {
 		choices = []MenuItem{
-			{Name: "🌿 Git Controls", Value: "git-controls"},
-			{Name: "🏃 Run App (Auto-Detect)", Value: "run-app"},
-			{Name: "📦 Build App (Auto-Detect)", Value: "build-app"},
-			{Name: "🚀 Bump Version", Value: "bump"},
-			{Name: "🤖 Ask Gemini / AI Query", Value: "ai"},
-			{Name: "🛠 Settings", Value: "settings"},
-			{Name: "❌ Exit", Value: "exit"},
+			{Icon: "🌿", Label: "Git Controls", Value: "git-controls"},
+			{Icon: "🏃", Label: "Run App (Auto-Detect)", Value: "run-app"},
+			{Icon: "📦", Label: "Build App (Auto-Detect)", Value: "build-app"},
+			{Icon: "🚀", Label: "Bump Version", Value: "bump"},
+			{Icon: "🤖", Label: "Ask Gemini / AI Query", Value: "ai"},
+			{Icon: "🛠", Label: "Settings", Value: "settings"},
+			{Icon: "❌", Label: "Exit", Value: "exit"},
 		}
 	} else {
 		choices = []MenuItem{
-			{Name: "🏃 Run App (Auto-Detect)", Value: "run-app"},
-			{Name: "📦 Build App (Auto-Detect)", Value: "build-app"},
-			{Name: "🤖 Ask Gemini / AI Query", Value: "ai"},
-			{Name: "🛠 Settings", Value: "settings"},
-			{Name: "❌ Exit", Value: "exit"},
+			{Icon: "🏃", Label: "Run App (Auto-Detect)", Value: "run-app"},
+			{Icon: "📦", Label: "Build App (Auto-Detect)", Value: "build-app"},
+			{Icon: "🤖", Label: "Ask Gemini / AI Query", Value: "ai"},
+			{Icon: "🛠", Label: "Settings", Value: "settings"},
+			{Icon: "❌", Label: "Exit", Value: "exit"},
 		}
 	}
 
@@ -140,11 +141,33 @@ func (m MenuModel) View() string {
 	// Menu choices
 	s.WriteString(Accent.Render("  📋  SELECTABLE MENU\n"))
 	for i, choice := range m.Choices {
+		// Use Lip Gloss styles with explicit widths to align the text columns
+		cursorCol := "    "
 		if i == m.Cursor {
-			s.WriteString(Primary.Render("    ❯ ") + Bright.Render(choice.Name) + "\n")
-		} else {
-			s.WriteString(Muted.Render("      " + choice.Name) + "\n")
+			cursorCol = "  ❯ "
 		}
+
+		// Set explicit width on the cursor column to prevent shifting
+		cursorStyle := lipgloss.NewStyle().Width(4)
+		if i == m.Cursor {
+			cursorStyle = cursorStyle.Inherit(Primary)
+		} else {
+			cursorStyle = cursorStyle.Inherit(Muted)
+		}
+
+		// Ensure the icon occupies exactly 3 character columns (icon + space)
+		iconStyle := lipgloss.NewStyle().Width(3)
+		if AppBg != "" {
+			iconStyle = iconStyle.Background(lipgloss.Color(AppBg))
+		}
+
+		labelStyle := Muted
+		if i == m.Cursor {
+			labelStyle = Bright
+		}
+
+		renderedLine := cursorStyle.Render(cursorCol) + iconStyle.Render(choice.Icon) + " " + labelStyle.Render(choice.Label)
+		s.WriteString(renderedLine + "\n")
 	}
 	s.WriteString(bgStyle.Render("\n"))
 
