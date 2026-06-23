@@ -293,7 +293,16 @@ func GetProjectInfo() string {
 	return folderName
 }
 
-// ─── Banner Rendering ──────────────────────────────────────
+// ─── ASCII Art Banner ──────────────────────────────────────
+
+const asciiArt = `
+  ██████╗ ███████╗██╗   ██╗██████╗ 
+  ██╔══██╗██╔════╝██║   ██║██╔══██╗
+  ██║  ██║█████╗  ██║   ██║██║  ██║
+  ██║  ██║██╔══╝  ╚██╗ ██╔╝██║  ██║
+  ██████╔╝███████╗ ╚████╔╝ ██████╔╝
+  ╚══════╝╚══════╝  ╚═══╝  ╚═════╝ 
+`
 
 func RenderBanner(version string) string {
 	rawInfo := GetProjectInfo()
@@ -316,27 +325,64 @@ func RenderBanner(version string) string {
 
 	var content strings.Builder
 
-	// Gradient title line with right-aligned version
-	titleText := "◆ devD CLI"
-	versionStr := "v" + version
-	titleRendered := GradientText(titleText, GradientStart, GradientEnd)
-	spacing := width - len([]rune(titleText)) - len(versionStr) - 6
+	// Render ASCII art line by line with gradient
+	artLines := strings.Split(strings.Trim(asciiArt, "\n"), "\n")
+	for _, line := range artLines {
+		// Indent the ASCII art a bit to center it inside width 56
+		lineLen := len([]rune(line))
+		indentSize := (width-lineLen)/2 - 1
+		if indentSize < 0 {
+			indentSize = 0
+		}
+		indent := strings.Repeat(" ", indentSize)
+		content.WriteString(indent + GradientText(line, GradientStart, GradientEnd) + "\n")
+	}
+	content.WriteString("\n")
+
+	// Centered tagline
+	tagline := "Accelerating Developer Workflows"
+	taglineLen := len([]rune(tagline))
+	taglineIndentSize := (width-taglineLen)/2 - 1
+	if taglineIndentSize < 0 {
+		taglineIndentSize = 0
+	}
+	taglineIndent := strings.Repeat(" ", taglineIndentSize)
+	content.WriteString(taglineIndent + Muted.Render(tagline) + "\n\n")
+
+	// Divider line inside the box
+	var dividerLine string
+	if AppBg != "" {
+		dividerLine = lipgloss.NewStyle().Foreground(BorderColor).Background(lipgloss.Color(AppBg)).Render(strings.Repeat("─", width))
+	} else {
+		dividerLine = lipgloss.NewStyle().Foreground(BorderColor).Render(strings.Repeat("─", width))
+	}
+	content.WriteString(dividerLine + "\n")
+
+	// Workspace and Version in columns at the bottom
+	workspaceLabel := " Workspace: "
+	workspaceValue := projectStr
+	versionLabel := "Version: "
+	versionValue := "v" + version
+
+	leftCol := Dim.Render("◇") + Muted.Render(workspaceLabel) + Accent.Render(workspaceValue)
+	rightCol := Muted.Render(versionLabel) + Dim.Render(versionValue)
+
+	// Calculate spacing between columns
+	leftLen := 2 + len(workspaceLabel) + len(workspaceValue)
+	rightLen := len(versionLabel) + len(versionValue)
+	spacing := width - leftLen - rightLen - 2
 	if spacing < 1 {
 		spacing = 1
 	}
+
 	var padStr string
 	if AppBg != "" {
 		padStr = lipgloss.NewStyle().Background(lipgloss.Color(AppBg)).Render(strings.Repeat(" ", spacing))
 	} else {
 		padStr = strings.Repeat(" ", spacing)
 	}
-	content.WriteString("  " + titleRendered + padStr + Dim.Render(versionStr) + "\n")
 
-	// Tagline
-	content.WriteString("  " + Muted.Render("Accelerating Developer Workflows") + "\n")
-
-	// Workspace
-	content.WriteString("  " + Dim.Render("◇ ") + Accent.Render(projectStr) + "\n")
+	content.WriteString(" " + leftCol + padStr + rightCol + "\n")
 
 	// Gradient accent bar below the box
 	accentBar := GradientText(strings.Repeat("━", width+2), GradientStart, GradientEnd)
