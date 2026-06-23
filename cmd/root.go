@@ -132,7 +132,18 @@ func RunMenuLoop() {
 				}
 				HandleMenuAction(action)
 			} else {
-				fmt.Printf("\nUnknown command/shortcut: \"%s\"\n", menuModel.ChosenValue)
+				// Execute the command directly in the shell
+				shellInput := menuModel.ChosenValue
+				ui.PrintBanner(Version)
+				fmt.Printf("%s Running shell command: %s\n\n", ui.Info.Render("❯"), ui.Bright.Render(shellInput))
+				
+				// We run via /bin/zsh -c "command" to support aliases/pipes/etc.
+				shellCmd := exec.Command("/bin/zsh", "-c", shellInput)
+				shellCmd.Stdout = os.Stdout
+				shellCmd.Stderr = os.Stderr
+				shellCmd.Stdin = os.Stdin
+				
+				_ = shellCmd.Run()
 				ui.PressEnterToContinue()
 			}
 		} else {
@@ -157,6 +168,7 @@ func HandleCDAction(action string) {
 		nav := ui.NewNavigatorModel(cwd)
 		p := tea.NewProgram(nav)
 		finalModel, err := p.Run()
+		fmt.Print("\033[H\033[2J\033[3J") // Clear scrollback when navigator exits
 		if err == nil {
 			if navModel, ok := finalModel.(ui.NavigatorModel); ok && navModel.Confirmed {
 				if err := os.Chdir(navModel.CurrentDir); err != nil {
@@ -327,6 +339,7 @@ func HandleMenuAction(action string) {
 				"◁  Back to main menu",
 			}
 			chosen, err := ui.PromptSelect("Select Git action:", choices)
+			fmt.Print("\033[H\033[2J\033[3J") // Clean screen scrollback on prompt return/exit
 			if err != nil || strings.Contains(chosen, "Back") || strings.Contains(chosen, "◁") {
 				break
 			}

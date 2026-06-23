@@ -30,6 +30,7 @@ func ShowSettingsMenu() {
 		}
 
 		chosen, err := ui.PromptSelect("Select setting option:", choices)
+		fmt.Print("\033[H\033[2J\033[3J") // Clean screen scrollback on menu exit
 		if err != nil || strings.Contains(chosen, "Back") || strings.Contains(chosen, "◁") {
 			return
 		}
@@ -70,6 +71,7 @@ func ShowPreferencesMenu() {
 		}
 
 		chosen, err := ui.PromptSelect("Select preference option:", choices)
+		fmt.Print("\033[H\033[2J\033[3J") // Clean screen scrollback on menu exit
 		if err != nil || strings.Contains(chosen, "Back") || strings.Contains(chosen, "◁") {
 			return
 		}
