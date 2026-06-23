@@ -95,10 +95,11 @@ func PromptSelect(title string, choices []string) (string, error) {
 // ==========================================
 
 type InputModel struct {
-	Title        string
-	Value        string
-	DefaultValue string
-	Cancelled    bool
+	Title         string
+	Value         string
+	DefaultValue  string
+	Cancelled     bool
+	TerminalWidth int
 }
 
 func (m InputModel) Init() tea.Cmd {
@@ -107,6 +108,9 @@ func (m InputModel) Init() tea.Cmd {
 
 func (m InputModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
+	case tea.WindowSizeMsg:
+		m.TerminalWidth = msg.Width
+
 	case tea.KeyMsg:
 		switch msg.String() {
 		case "ctrl+c":
@@ -122,7 +126,8 @@ func (m InputModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, tea.Quit
 		case "backspace":
 			if len(m.Value) > 0 {
-				m.Value = m.Value[:len(m.Value)-1]
+				runes := []rune(m.Value)
+				m.Value = string(runes[:len(runes)-1])
 			}
 		default:
 			if len(msg.String()) == 1 {
@@ -145,10 +150,33 @@ func (m InputModel) View() string {
 
 	displayVal := m.Value
 	if displayVal == "" && m.DefaultValue != "" {
-		s.WriteString("   " + Accent.Render("❯") + " " + Dim.Render(m.DefaultValue) + Dim.Render("▏") + "\n")
-	} else {
-		s.WriteString("   " + Accent.Render("❯") + " " + Bright.Render(displayVal) + Dim.Render("▏") + "\n")
+		displayVal = m.DefaultValue
 	}
+
+	wrapWidth := m.TerminalWidth - 7
+	if wrapWidth < 20 {
+		wrapWidth = 50 // sensible default
+	}
+
+	wrappedInput := WrapText(displayVal, wrapWidth)
+	wrappedLines := strings.Split(wrappedInput, "\n")
+	var displayInput strings.Builder
+	for idx, line := range wrappedLines {
+		if displayVal == m.DefaultValue {
+			if idx == 0 {
+				displayInput.WriteString("   " + Accent.Render("❯") + " " + Dim.Render(line))
+			} else {
+				displayInput.WriteString("\n     " + Dim.Render(line))
+			}
+		} else {
+			if idx == 0 {
+				displayInput.WriteString("   " + Accent.Render("❯") + " " + Bright.Render(line))
+			} else {
+				displayInput.WriteString("\n     " + Bright.Render(line))
+			}
+		}
+	}
+	s.WriteString(displayInput.String() + Dim.Render("▏") + "\n")
 
 	s.WriteString("\n" + Dim.Render("  ────────────────────────────────────────────────────") + "\n")
 	s.WriteString("   " + Muted.Render("enter confirm") + Dim.Render("  ·  ") +

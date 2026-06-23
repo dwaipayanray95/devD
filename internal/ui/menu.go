@@ -25,6 +25,7 @@ type MenuModel struct {
 	ChosenType   string // "menu" or "input"
 	Quitting     bool
 	TextSelected bool
+	TerminalWidth int
 }
 
 func NewMenuModel(version string, gitActive bool, themeName string) MenuModel {
@@ -50,13 +51,14 @@ func NewMenuModel(version string, gitActive bool, themeName string) MenuModel {
 	}
 
 	return MenuModel{
-		Version:     version,
-		GitActive:   gitActive,
-		ThemeName:   themeName,
-		Choices:     choices,
-		Cursor:      0,
-		InputBuffer: "",
-		EscPressed:  false,
+		Version:       version,
+		GitActive:     gitActive,
+		ThemeName:     themeName,
+		Choices:       choices,
+		Cursor:        0,
+		InputBuffer:   "",
+		EscPressed:    false,
+		TerminalWidth: 65, // default fallback width
 	}
 }
 
@@ -66,6 +68,9 @@ func (m MenuModel) Init() tea.Cmd {
 
 func (m MenuModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
+	case tea.WindowSizeMsg:
+		m.TerminalWidth = msg.Width
+
 	case tea.KeyMsg:
 		switch msg.String() {
 		case "ctrl+v":
@@ -181,7 +186,23 @@ func (m MenuModel) View() string {
 
 	// ── Command Input Section ───────────────
 	s.WriteString(RenderDivider("Command", 54) + "\n\n")
-	s.WriteString("   " + Accent.Render("❯") + " " + Bright.Render(m.InputBuffer) + Dim.Render("▏") + "\n\n")
+	wrapWidth := m.TerminalWidth - 7
+	if wrapWidth < 20 {
+		wrapWidth = 20
+	}
+	wrappedInput := WrapText(m.InputBuffer, wrapWidth)
+	
+	// Add proper indentation to wrapped lines
+	wrappedLines := strings.Split(wrappedInput, "\n")
+	var displayInput strings.Builder
+	for idx, line := range wrappedLines {
+		if idx == 0 {
+			displayInput.WriteString("   " + Accent.Render("❯") + " " + Bright.Render(line))
+		} else {
+			displayInput.WriteString("\n     " + Bright.Render(line))
+		}
+	}
+	s.WriteString(displayInput.String() + Dim.Render("▏") + "\n\n")
 
 	// ── Footer ──────────────────────────────
 	if m.EscPressed {

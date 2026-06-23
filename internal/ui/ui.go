@@ -177,6 +177,37 @@ func GradientText(text, startHex, endHex string) string {
 
 // ─── UI Helpers ────────────────────────────────────────────
 
+// WrapText wrap a given string to a max width.
+func WrapText(text string, maxWidth int) string {
+	if maxWidth <= 0 {
+		return text
+	}
+	var result strings.Builder
+	lines := strings.Split(text, "\n")
+	for i, line := range lines {
+		if i > 0 {
+			result.WriteRune('\n')
+		}
+		runes := []rune(line)
+		if len(runes) <= maxWidth {
+			result.WriteString(line)
+			continue
+		}
+		for len(runes) > 0 {
+			chunkSize := maxWidth
+			if len(runes) < chunkSize {
+				chunkSize = len(runes)
+			}
+			result.WriteString(string(runes[:chunkSize]))
+			runes = runes[chunkSize:]
+			if len(runes) > 0 {
+				result.WriteRune('\n')
+			}
+		}
+	}
+	return result.String()
+}
+
 // RenderDivider creates a styled horizontal rule with an optional title.
 func RenderDivider(title string, width int) string {
 	if title == "" {
