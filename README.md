@@ -2,18 +2,32 @@
 
 [![GitHub Stars](https://img.shields.io/github/stars/dwaipayanray95/devD?style=social)](https://github.com/dwaipayanray95/devD)
 ![Visitors](https://komarev.com/ghpvc/?username=dwaipayanray95-devD&color=blueviolet&style=flat-square&label=Views)
+##
+<p align="center">
+  <img src="https://github.com/user-attachments/assets/6b69783a-5225-4700-996c-9eb6f0679444" alt="Banner Screenshot" width="100%">
+</p>
+
+## 
 
 `devD` is a premium, state-of-the-art interactive developer companion CLI written in **Go**. It automates Git repository tasks, conventional commits, staging files, stashing, and version bumping. It also integrates with the Gemini API to draft commit messages from diffs or answer coding questions directly inside your terminal, wrapped in a beautiful, modern terminal aesthetic.
 
+
+<img width="320" height="467" alt="Screenshot 2026-06-23 at 19 06 20" src="https://github.com/user-attachments/assets/4f6e2eed-e7f2-4728-835a-0ee71512298a" />
+<img width="320" height="467" alt="Screenshot 2026-06-23 at 19 11 39" src="https://github.com/user-attachments/assets/6acf0c36-c555-4c64-bc85-eef4557871b9" />
+<img width="320" height="467" alt="Screenshot 2026-06-23 at 19 06 44" src="https://github.com/user-attachments/assets/f9da9adb-97f4-4509-91ea-031e72a8a875" />
+
 ---
 
-## 🎨 Premium Modern Design Language
+## 🎨 Premium Modern Vibecoding CLI Assistant
 `devD` features a visual identity inspired by premium AI CLI agents (like Gemini CLI, AGY, and Claude Code):
 - **Solid Gradient Wordmark**: A gorgeous, high-contrast block banner (`devD`) dynamically colored with a theme-dependent gradient.
 - **Dynamic Terminal Auto-Scaling**: Auto-resizes the terminal window to a minimum of **42 rows and 65 columns** on start to ensure optimal layout layout and zero text clipping.
 - **Modern Color Palettes**: Supports premium curated **Dark** (Slate & Indigo), **Light** (Clean Off-White & Indigo), and **Solarized Light** (Warm Cream & Teal) themes.
 - **Clean Unicode Layouts**: Emojis are replaced by structured Unicode symbols (`◆`, `●`, `▸`, `▌`, `─`) and highlighted cursor blocks.
 - **Auto Scrollback Hygiene**: Automatically clears lingering interface histories when traversing folders, switching menus, or returning from shell executions.
+- **Direct Terminal Command Fallback**: Type any standard shell command (e.g. `ls -la`, `cat main.go`, `git log`) directly into the input buffer to execute it inside zsh without exiting `devD`.
+- **Auto-Update Delivery**: Checks for new updates programmatically in the background on startup, alerts you, and prompts for a clean, silent install wrapper directly from GitHub.
+- **Robust Git & Versioning Workflow**: Wizard tools to manage branches, conventional commits, tagging, stashing, and version bumping in seconds.
 
 ---
 
