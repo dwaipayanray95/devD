@@ -40,10 +40,10 @@ func Execute(ver string) {
 		fmt.Println()
 
 		opts := []string{
-			"🌑 Dark Mode (Standard high contrast slate dark)",
-			"☀️ Light Mode (High visibility contrast indigo light)",
-			"☀️ Solarized Light Mode (Solarized base warm cream-yellow contrast)",
-			"🖥️  System Mode (Align automatically to terminal context)",
+			"●  Dark — High contrast slate & indigo",
+			"○  Light — Clean off-white & indigo",
+			"◐  Solarized — Warm cream & teal accents",
+			"◑  System — Auto-detect terminal theme",
 		}
 		
 		chosen, err := ui.PromptSelect("Select theme preference:", opts)
@@ -75,7 +75,7 @@ func RunMenuLoop() {
 	for {
 		gitActive := git.IsGitRepository()
 		
-		m := ui.NewMenuModel(Version, gitActive)
+		m := ui.NewMenuModel(Version, gitActive, config.GetTheme())
 		p := tea.NewProgram(m)
 		
 		finalModel, err := p.Run()
@@ -282,21 +282,21 @@ func HandleMenuAction(action string) {
 	case "git-controls":
 		for {
 			ui.PrintBanner(Version)
-			fmt.Println(ui.Accent.Render("  │  Git Controls"))
+			fmt.Println(ui.RenderDivider("Git Controls", 54))
 			fmt.Println()
 			choices := []string{
-				"✍️  Stage & Commit Wizard (Conventional)",
-				"🌿 Git Branch Manager",
-				"🏷️  Create & Push Release Tag",
-				"🚀 Create GitHub Release",
-				"📊 Show Repo Status Dashboard",
-				"🔄 Sync Repo (Pull & Push)",
-				"📥 Stash Current Changes",
-				"📤 Pop Last Stash",
-				"↩ Back to main menu",
+				"◆  Stage & Commit Wizard (Conventional)",
+				"◇  Git Branch Manager",
+				"▣  Create & Push Release Tag",
+				"▶  Create GitHub Release",
+				"◈  Show Repo Status Dashboard",
+				"⟳  Sync Repo (Pull & Push)",
+				"▽  Stash Current Changes",
+				"△  Pop Last Stash",
+				"◁  Back to main menu",
 			}
 			chosen, err := ui.PromptSelect("Select Git action:", choices)
-			if err != nil || strings.Contains(chosen, "Back") || strings.Contains(chosen, "↩") {
+			if err != nil || strings.Contains(chosen, "Back") || strings.Contains(chosen, "◁") {
 				break
 			}
 			switch {
@@ -329,7 +329,7 @@ func HandleMenuAction(action string) {
 		ui.PressEnterToContinue()
 	case "ai":
 		ui.PrintBanner(Version)
-		fmt.Println(ui.Accent.Render("  │  Gemini AI Assistant"))
+		fmt.Println(ui.RenderDivider("Gemini AI Assistant", 54))
 		fmt.Println()
 		prompt, err := ui.PromptInput("Ask Gemini anything:", "")
 		if err == nil && prompt != "" {

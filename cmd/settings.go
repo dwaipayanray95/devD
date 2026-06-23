@@ -16,21 +16,21 @@ import (
 func ShowSettingsMenu() {
 	for {
 		ui.PrintBanner(Version)
-		fmt.Println(ui.Accent.Render("  │  Settings Menu"))
+		fmt.Println(ui.RenderDivider("Settings", 54))
 		fmt.Println()
 
 		choices := []string{
-			"✨ Update devD CLI",
-			"ℹ️  Help & Commands",
-			"⚙️  Preferences",
-			"📋 Manage System Logs",
-			"🔁 Restart devD CLI",
-			"❤️  GitHub Repository Link",
-			"↩ Back to main menu",
+			"▲  Update devD CLI",
+			"◇  Help & Commands",
+			"●  Preferences",
+			"▤  Manage System Logs",
+			"⟳  Restart devD CLI",
+			"♡  GitHub Repository",
+			"◁  Back to main menu",
 		}
 
 		chosen, err := ui.PromptSelect("Select setting option:", choices)
-		if err != nil || strings.Contains(chosen, "Back") || strings.Contains(chosen, "↩") {
+		if err != nil || strings.Contains(chosen, "Back") || strings.Contains(chosen, "◁") {
 			return
 		}
 
@@ -60,23 +60,23 @@ func ShowSettingsMenu() {
 func ShowPreferencesMenu() {
 	for {
 		ui.PrintBanner(Version)
-		fmt.Println(ui.Accent.Render("  │  Preferences"))
+		fmt.Println(ui.RenderDivider("Preferences", 54))
 		fmt.Println()
 
 		choices := []string{
-			"🔑 Configure GitHub Token",
-			"✨ Toggle Theme (Dark / Light / System)",
-			"↩ Back to settings menu",
+			"◆  Configure GitHub Token",
+			"◇  Toggle Theme (Dark / Light / System)",
+			"◁  Back to settings menu",
 		}
 
 		chosen, err := ui.PromptSelect("Select preference option:", choices)
-		if err != nil || strings.Contains(chosen, "Back") || strings.Contains(chosen, "↩") {
+		if err != nil || strings.Contains(chosen, "Back") || strings.Contains(chosen, "◁") {
 			return
 		}
 
 		if strings.Contains(chosen, "Configure GitHub Token") {
 			ui.PrintBanner(Version)
-			fmt.Println(ui.Accent.Render("  │  Configure GitHub Token"))
+			fmt.Println(ui.RenderDivider("Configure GitHub Token", 54))
 			fmt.Println()
 
 			currentToken := config.GetStoredToken()
@@ -85,9 +85,9 @@ func ShowPreferencesMenu() {
 				fmt.Printf(ui.Info.Render("A GitHub Token is currently stored locally (masked: %s).\n\n"), masked)
 				
 				opts := []string{
-					"🔄 Replace stored token",
-					"❌ Clear stored token",
-					"↩ Return",
+					"⟳  Replace stored token",
+					"✕  Clear stored token",
+					"◁  Return",
 				}
 				opt, err := ui.PromptSelect("What would you like to do?", opts)
 				if err != nil || strings.Contains(opt, "Return") {
@@ -120,7 +120,7 @@ func ShowPreferencesMenu() {
 
 		if strings.Contains(chosen, "Toggle Theme") {
 			ui.PrintBanner(Version)
-			fmt.Println(ui.Accent.Render("  │  Toggle Theme Preference"))
+			fmt.Println(ui.RenderDivider("Toggle Theme", 54))
 			fmt.Println()
 
 			currentTheme := config.GetTheme()
@@ -130,11 +130,11 @@ func ShowPreferencesMenu() {
 			fmt.Printf(ui.Info.Render("Current active theme mode: %s\n\n"), currentTheme)
 
 			opts := []string{
-				"🌑 Dark Mode",
-				"☀️ Light Mode",
-				"☀️ Solarized Light Mode",
-				"🖥️  System Mode",
-				"↩ Return",
+				"●  Dark Mode",
+				"○  Light Mode",
+				"◐  Solarized Light Mode",
+				"◑  System Mode",
+				"◁  Return",
 			}
 			opt, err := ui.PromptSelect("Select theme preference:", opts)
 			if err != nil || strings.Contains(opt, "Return") {
@@ -160,7 +160,7 @@ func ShowPreferencesMenu() {
 
 func ShowHelpMenu() {
 	ui.PrintBanner(Version)
-	fmt.Println(ui.Accent.Render("  │  Help & Documentation"))
+	fmt.Println(ui.RenderDivider("Help & Documentation", 54))
 	fmt.Println()
 
 	commandsHelp := []struct {

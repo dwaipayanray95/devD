@@ -1,48 +1,75 @@
-# Developer Agent Guide - devD CLI Companion
+# Developer Agent Guide — devD CLI Companion
 
 Welcome, AI Coding Agent! This guide outlines the project structure, design guidelines, and patterns used in `devD` so you can contribute efficiently.
 
 ## Project Overview
-`devD` is a developer helper CLI companion for Git, stashing, AI queries, and version bumping, built in Node.js (ES Modules).
+`devD` is a developer helper CLI companion for Git, stashing, AI queries, and version bumping, built in **Go** using [Cobra](https://github.com/spf13/cobra) for command routing and [Bubble Tea](https://github.com/charmbracelet/bubbletea) + [Lip Gloss](https://github.com/charmbracelet/lipgloss) for the interactive TUI.
 
 ## Architecture & Modular Design
 
-The codebase is split into lightweight, single-responsibility modules under `src/`, keeping the main entry point `bin/devD.js` thin.
+The codebase is split into lightweight, single-responsibility modules under `internal/`, keeping the entry point `main.go` thin.
 
 ```
 devD/
-├── bin/
-│   └── devD.js         # Entry point: CLI command definition (Commander) & router
-└── src/
-    ├── commands.js     # Text command/shortcut registry, parser, & Help UI
-    ├── detector.js     # Project framework and build/run command detector
-    ├── git.js          # Native Git command executions & status parsers
-    ├── gitControl.js   # Interactive Git sub-menus, branch manager, commits wizard & status dashboard
-    ├── menu.js         # Interactive TUI combining list selection & text field
-    ├── navigator.js    # Interactive Folder Navigator & drive selector
-    ├── ui.js           # General UI helpers, theme colors, banner printing & Gemini client
-    └── updater.js      # Global CLI updater & cross-platform spawner
+├── main.go                     # Entry point: calls cmd.Execute()
+├── cmd/
+│   ├── root.go                 # CLI command definition (Cobra), menu loop & action router
+│   └── settings.go             # Settings, preferences, help & restart handlers
+└── internal/
+    ├── config/
+    │   └── config.go           # Config persistence (~/.devd/config.json), theme & token storage
+    ├── detector/
+    │   └── detector.go         # Project framework auto-detection (Node, Flutter, Go, etc.)
+    ├── gemini/
+    │   └── gemini.go           # Gemini AI client for AI query feature
+    ├── git/
+    │   └── *.go                # Git operations, commit wizard, branch manager, release flow
+    ├── logger/
+    │   └── logger.go           # System log management
+    └── ui/
+        ├── ui.go               # Design system: style tokens, themes, gradient rendering, banner
+        ├── menu.go             # Interactive main menu (Bubble Tea model)
+        ├── prompts.go          # Select, input, confirm prompt components (Bubble Tea)
+        └── navigator.go        # Interactive folder navigator with letter-snapping (Bubble Tea)
 ```
+
+---
+
+## Design System
+
+### Style Tokens
+All colors and styles are defined in `internal/ui/ui.go` as Lip Gloss styles:
+- `Primary`, `Success`, `Warning`, `Error`, `Muted`, `Info`, `Accent`, `Bright`, `Dim`, `Highlight`
+- These are dynamically resolved via `InitTheme()` based on the user's stored preference (dark/light/solarized/system).
+
+### UI Conventions
+- **No emojis** — Use Unicode symbols (`◆`, `▶`, `◼`, `▲`, `◇`, `●`, `✕`, `▸`, `◁`, etc.)
+- **Selection indicator**: Use `▌` (left half-block) in Accent color for the active item
+- **Section headers**: Use `RenderDivider(title, width)` for horizontal rule separators
+- **Gradient rendering**: Use `GradientText(text, startHex, endHex)` for accent effects (e.g., ASCII art logo)
+- **Key hints footer**: Always show available shortcuts at the bottom of interactive views
 
 ---
 
 ## Coding Guidelines & Constraints
 
 ### 1. Maintain Modular Boundaries
-* Keep `bin/devD.js` as a routing layer. Do not add UI layout rendering or complex logic directly in it; delegate to the corresponding `src/` modules.
-* Export configurations and logic functions so they are easily testable.
+* Keep `main.go` as just an entry point. All routing lives in `cmd/root.go`.
+* UI rendering and design tokens live exclusively in `internal/ui/`.
+* Config persistence lives in `internal/config/`.
 
-### 2. Windows Spawning Compatibility
-* Never use `shell: true` with `spawn` or `exec` on Windows when passing dynamic arguments, as this triggers deprecation warning `[DEP0190]`.
-* Always use `crossSpawn` from `src/updater.js`. It automatically appends `.cmd` to `npm`/`npx` scripts when executing on Windows, allowing them to spawn cleanly without `shell: true` or `EINVAL`/`ENOENT` errors.
+### 2. Theme Awareness
+* All new UI must use the global style tokens (`ui.Primary`, `ui.Accent`, etc.), never hardcoded hex colors.
+* The `AppBg` variable controls background coloring for light/solarized themes.
 
-### 3. Interactive TTY Inputs
-* If drawing a raw keyboard input screen (e.g., custom prompts or lists), ensure you call `process.stdin.resume()` when initializing to prevent the Node process from exiting prematurely if previous prompt libraries (like `inquirer`) paused the stdin stream.
+### 3. No Git Operations by AI Agents
+* Do **NOT** commit, push, or create tags/releases on behalf of the user unless explicitly asked.
+* The user will review and commit manually.
 
 ---
 
 ## Adding Commands or Shortcuts
 To add or modify text-field commands:
-1. Update the `COMMANDS_HELP` registry array in `src/commands.js`.
-2. Add your parsing mappings (shortcuts, aliases) in `parseCommand()` in `src/commands.js`.
-3. Add the execution handler under `handleMenuAction()` in `bin/devD.js`.
+1. Add your parsing mappings (shortcuts, aliases) in `ParseCommand()` in `cmd/root.go`.
+2. Add the execution handler under `HandleMenuAction()` in `cmd/root.go`.
+3. If adding a menu item, update `NewMenuModel()` in `internal/ui/menu.go`.

@@ -6,75 +6,192 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 
 	"github.com/charmbracelet/lipgloss"
 )
 
+// ─── Style Tokens ──────────────────────────────────────────
+
 var (
-	Primary = lipgloss.NewStyle().Foreground(lipgloss.Color("#cbd5e1"))
-	Success = lipgloss.NewStyle().Foreground(lipgloss.Color("#34d399"))
-	Warning = lipgloss.NewStyle().Foreground(lipgloss.Color("#fbbf24"))
-	Error   = lipgloss.NewStyle().Foreground(lipgloss.Color("#f87171"))
-	Muted   = lipgloss.NewStyle().Foreground(lipgloss.Color("#94a3b8"))
-	Info    = lipgloss.NewStyle().Foreground(lipgloss.Color("#38bdf8"))
-	Accent  = lipgloss.NewStyle().Foreground(lipgloss.Color("#818cf8"))
-	Bright  = lipgloss.NewStyle().Foreground(lipgloss.Color("#ffffff")).Bold(true)
+	Primary     = lipgloss.NewStyle().Foreground(lipgloss.Color("#cbd5e1"))
+	Success     = lipgloss.NewStyle().Foreground(lipgloss.Color("#34d399"))
+	Warning     = lipgloss.NewStyle().Foreground(lipgloss.Color("#fbbf24"))
+	Error       = lipgloss.NewStyle().Foreground(lipgloss.Color("#f87171"))
+	Muted       = lipgloss.NewStyle().Foreground(lipgloss.Color("#94a3b8"))
+	Info        = lipgloss.NewStyle().Foreground(lipgloss.Color("#38bdf8"))
+	Accent      = lipgloss.NewStyle().Foreground(lipgloss.Color("#818cf8"))
+	Bright      = lipgloss.NewStyle().Foreground(lipgloss.Color("#ffffff")).Bold(true)
+	Dim         = lipgloss.NewStyle().Foreground(lipgloss.Color("#475569"))
+	Highlight   = lipgloss.NewStyle().Background(lipgloss.Color("#312e81")).Foreground(lipgloss.Color("#e0e7ff")).Bold(true)
 	BorderColor = lipgloss.Color("#818cf8")
-	AppBg       = "" // Empty means transparent/default terminal background
+	AppBg       = ""
+
+	// Gradient endpoints for the ASCII art logo
+	GradientStart = "#38bdf8"
+	GradientEnd   = "#a78bfa"
 )
 
+// ─── Theme Palettes ────────────────────────────────────────
+
 type ThemePalette struct {
-	Primary    string
-	Success    string
-	Warning    string
-	Error      string
-	Muted      string
-	Info       string
-	Accent     string
-	Bright     string
-	Border     string
-	Background string
+	Primary       string
+	Success       string
+	Warning       string
+	Error         string
+	Muted         string
+	Info          string
+	Accent        string
+	Bright        string
+	Border        string
+	Background    string
+	Dim           string
+	HighlightBg   string
+	HighlightFg   string
+	GradientStart string
+	GradientEnd   string
 }
 
 var DarkTheme = ThemePalette{
-	Primary:    "#cbd5e1",
-	Success:    "#34d399",
-	Warning:    "#fbbf24",
-	Error:      "#f87171",
-	Muted:      "#94a3b8",
-	Info:       "#38bdf8",
-	Accent:     "#818cf8",
-	Bright:     "#ffffff",
-	Border:     "#818cf8",
-	Background: "", // Transparent dark fallback
+	Primary:       "#cbd5e1",
+	Success:       "#34d399",
+	Warning:       "#fbbf24",
+	Error:         "#f87171",
+	Muted:         "#94a3b8",
+	Info:          "#38bdf8",
+	Accent:        "#818cf8",
+	Bright:        "#ffffff",
+	Border:        "#818cf8",
+	Background:    "",
+	Dim:           "#475569",
+	HighlightBg:   "#312e81",
+	HighlightFg:   "#e0e7ff",
+	GradientStart: "#38bdf8",
+	GradientEnd:   "#a78bfa",
 }
 
 var LightTheme = ThemePalette{
-	Primary:    "#334155",
-	Success:    "#16a34a",
-	Warning:    "#ea580c",
-	Error:      "#dc2626",
-	Muted:      "#475569",
-	Info:       "#0284c7",
-	Accent:     "#4f46e5",
-	Bright:     "#0f172a",
-	Border:     "#4f46e5",
-	Background: "#fafaf9", // Premium warm off-white cream
+	Primary:       "#334155",
+	Success:       "#16a34a",
+	Warning:       "#ea580c",
+	Error:         "#dc2626",
+	Muted:         "#475569",
+	Info:          "#0284c7",
+	Accent:        "#4f46e5",
+	Bright:        "#0f172a",
+	Border:        "#4f46e5",
+	Background:    "#fafaf9",
+	Dim:           "#94a3b8",
+	HighlightBg:   "#4f46e5",
+	HighlightFg:   "#ffffff",
+	GradientStart: "#2563eb",
+	GradientEnd:   "#7c3aed",
 }
 
 var SolarizedTheme = ThemePalette{
-	Primary:    "#586e75", // base01
-	Success:    "#859900", // green
-	Warning:    "#cb4b16", // orange
-	Error:      "#dc322f", // red
-	Muted:      "#93a1a1", // base1
-	Info:       "#268bd2", // blue
-	Accent:     "#6c71c4", // violet
-	Bright:     "#073642", // base02
-	Border:     "#2aa198", // cyan
-	Background: "#fdf6e3", // base3 (Solarized Light warm cream-yellow)
+	Primary:       "#586e75",
+	Success:       "#859900",
+	Warning:       "#cb4b16",
+	Error:         "#dc322f",
+	Muted:         "#93a1a1",
+	Info:          "#268bd2",
+	Accent:        "#6c71c4",
+	Bright:        "#073642",
+	Border:        "#2aa198",
+	Background:    "#fdf6e3",
+	Dim:           "#839496",
+	HighlightBg:   "#2aa198",
+	HighlightFg:   "#fdf6e3",
+	GradientStart: "#2aa198",
+	GradientEnd:   "#6c71c4",
 }
+
+// ─── (ASCII art removed for compact layout) ───────────────
+
+// ─── Gradient Rendering ────────────────────────────────────
+
+func hexToRGB(hex string) (int, int, int) {
+	hex = strings.TrimPrefix(hex, "#")
+	if len(hex) < 6 {
+		return 0, 0, 0
+	}
+	r, _ := strconv.ParseInt(hex[0:2], 16, 64)
+	g, _ := strconv.ParseInt(hex[2:4], 16, 64)
+	b, _ := strconv.ParseInt(hex[4:6], 16, 64)
+	return int(r), int(g), int(b)
+}
+
+// GradientText renders a string with a smooth color gradient from startHex to endHex.
+// Only visible (non-space) characters receive the gradient; spaces preserve background.
+func GradientText(text, startHex, endHex string) string {
+	runes := []rune(text)
+	if len(runes) == 0 {
+		return text
+	}
+
+	r1, g1, b1 := hexToRGB(startHex)
+	r2, g2, b2 := hexToRGB(endHex)
+
+	visibleCount := 0
+	for _, ch := range runes {
+		if ch != ' ' {
+			visibleCount++
+		}
+	}
+	if visibleCount == 0 {
+		if AppBg != "" {
+			return lipgloss.NewStyle().Background(lipgloss.Color(AppBg)).Render(text)
+		}
+		return text
+	}
+
+	var result strings.Builder
+	colorIdx := 0
+	for _, ch := range runes {
+		if ch == ' ' {
+			if AppBg != "" {
+				result.WriteString(lipgloss.NewStyle().Background(lipgloss.Color(AppBg)).Render(" "))
+			} else {
+				result.WriteRune(' ')
+			}
+			continue
+		}
+		t := 0.0
+		if visibleCount > 1 {
+			t = float64(colorIdx) / float64(visibleCount-1)
+		}
+		r := int(float64(r1) + t*float64(r2-r1))
+		g := int(float64(g1) + t*float64(g2-g1))
+		b := int(float64(b1) + t*float64(b2-b1))
+		hexColor := fmt.Sprintf("#%02x%02x%02x", r, g, b)
+		style := lipgloss.NewStyle().Foreground(lipgloss.Color(hexColor)).Bold(true)
+		if AppBg != "" {
+			style = style.Background(lipgloss.Color(AppBg))
+		}
+		result.WriteString(style.Render(string(ch)))
+		colorIdx++
+	}
+	return result.String()
+}
+
+// ─── UI Helpers ────────────────────────────────────────────
+
+// RenderDivider creates a styled horizontal rule with an optional title.
+func RenderDivider(title string, width int) string {
+	if title == "" {
+		return Dim.Render("  " + strings.Repeat("─", width))
+	}
+	prefix := "─── "
+	suffix := " "
+	remaining := width - len(prefix) - len(title) - len(suffix)
+	if remaining < 3 {
+		remaining = 3
+	}
+	return Dim.Render("  "+prefix) + Muted.Render(title) + Dim.Render(suffix+strings.Repeat("─", remaining))
+}
+
+// ─── Theme Initialization ──────────────────────────────────
 
 func InitTheme(themeMode string) {
 	palette := DarkTheme
@@ -91,8 +208,9 @@ func InitTheme(themeMode string) {
 	}
 
 	AppBg = palette.Background
+	GradientStart = palette.GradientStart
+	GradientEnd = palette.GradientEnd
 
-	// Set foregrounds and backgrounds
 	if AppBg != "" {
 		bgCol := lipgloss.Color(AppBg)
 		Primary = lipgloss.NewStyle().Foreground(lipgloss.Color(palette.Primary)).Background(bgCol)
@@ -103,6 +221,11 @@ func InitTheme(themeMode string) {
 		Info = lipgloss.NewStyle().Foreground(lipgloss.Color(palette.Info)).Background(bgCol)
 		Accent = lipgloss.NewStyle().Foreground(lipgloss.Color(palette.Accent)).Background(bgCol)
 		Bright = lipgloss.NewStyle().Foreground(lipgloss.Color(palette.Bright)).Background(bgCol).Bold(true)
+		Dim = lipgloss.NewStyle().Foreground(lipgloss.Color(palette.Dim)).Background(bgCol)
+		Highlight = lipgloss.NewStyle().
+			Background(lipgloss.Color(palette.HighlightBg)).
+			Foreground(lipgloss.Color(palette.HighlightFg)).
+			Bold(true)
 	} else {
 		Primary = lipgloss.NewStyle().Foreground(lipgloss.Color(palette.Primary))
 		Success = lipgloss.NewStyle().Foreground(lipgloss.Color(palette.Success))
@@ -112,9 +235,16 @@ func InitTheme(themeMode string) {
 		Info = lipgloss.NewStyle().Foreground(lipgloss.Color(palette.Info))
 		Accent = lipgloss.NewStyle().Foreground(lipgloss.Color(palette.Accent))
 		Bright = lipgloss.NewStyle().Foreground(lipgloss.Color(palette.Bright)).Bold(true)
+		Dim = lipgloss.NewStyle().Foreground(lipgloss.Color(palette.Dim))
+		Highlight = lipgloss.NewStyle().
+			Background(lipgloss.Color(palette.HighlightBg)).
+			Foreground(lipgloss.Color(palette.HighlightFg)).
+			Bold(true)
 	}
 	BorderColor = lipgloss.Color(palette.Border)
 }
+
+// ─── Project Info ──────────────────────────────────────────
 
 func GetProjectInfo() string {
 	cwd, err := os.Getwd()
@@ -163,6 +293,8 @@ func GetProjectInfo() string {
 	return folderName
 }
 
+// ─── Banner Rendering ──────────────────────────────────────
+
 func RenderBanner(version string) string {
 	rawInfo := GetProjectInfo()
 	maxLen := 40
@@ -174,7 +306,7 @@ func RenderBanner(version string) string {
 	width := 56
 
 	borderStyle := lipgloss.NewStyle().
-		Border(lipgloss.DoubleBorder()).
+		Border(lipgloss.RoundedBorder()).
 		BorderForeground(BorderColor).
 		Width(width)
 
@@ -182,55 +314,44 @@ func RenderBanner(version string) string {
 		borderStyle = borderStyle.Background(lipgloss.Color(AppBg))
 	}
 
-	title := "🚀  devD CLI v" + version
-	titleStyle := Bright
-	titleCellWidth := lipgloss.Width(title)
-	titlePadding := (width - titleCellWidth) / 2
-	if titlePadding < 0 {
-		titlePadding = 0
+	var content strings.Builder
+
+	// Gradient title line with right-aligned version
+	titleText := "◆ devD CLI"
+	versionStr := "v" + version
+	titleRendered := GradientText(titleText, GradientStart, GradientEnd)
+	spacing := width - len([]rune(titleText)) - len(versionStr) - 6
+	if spacing < 1 {
+		spacing = 1
 	}
-	// Pad spaces with background style if present
-	var spacePaddingStyle lipgloss.Style
+	var padStr string
 	if AppBg != "" {
-		spacePaddingStyle = lipgloss.NewStyle().Background(lipgloss.Color(AppBg))
+		padStr = lipgloss.NewStyle().Background(lipgloss.Color(AppBg)).Render(strings.Repeat(" ", spacing))
+	} else {
+		padStr = strings.Repeat(" ", spacing)
 	}
-	titleLine := spacePaddingStyle.Render(strings.Repeat(" ", titlePadding)) + titleStyle.Render(title)
+	content.WriteString("  " + titleRendered + padStr + Dim.Render(versionStr) + "\n")
 
-	subtitle := "Accelerating Developer Workflows"
-	subtitleStyle := Muted
-	subCellWidth := lipgloss.Width(subtitle)
-	subPadding := (width - subCellWidth) / 2
-	if subPadding < 0 {
-		subPadding = 0
-	}
-	subtitleLine := spacePaddingStyle.Render(strings.Repeat(" ", subPadding)) + subtitleStyle.Render(subtitle)
+	// Tagline
+	content.WriteString("  " + Muted.Render("Accelerating Developer Workflows") + "\n")
 
-	workspaceLine := " 📂  Workspace: " + Accent.Render(projectStr)
+	// Workspace
+	content.WriteString("  " + Dim.Render("◇ ") + Accent.Render(projectStr) + "\n")
 
-	dividerStyle := lipgloss.NewStyle().Foreground(BorderColor)
-	if AppBg != "" {
-		dividerStyle = dividerStyle.Background(lipgloss.Color(AppBg))
-	}
-	dividerLine := dividerStyle.Render(strings.Repeat("═", width))
+	// Gradient accent bar below the box
+	accentBar := GradientText(strings.Repeat("━", width+2), GradientStart, GradientEnd)
 
-	boxContent := titleLine + "\n" + subtitleLine + "\n" + dividerLine + "\n" + workspaceLine
-
-	return borderStyle.Render(boxContent) + "\n\n"
+	return borderStyle.Render(content.String()) + "\n" + accentBar + "\n\n"
 }
 
 func PrintBanner(version string) {
 	fmt.Print("\033[H\033[2J") // Clear terminal screen and reset cursor
-	if AppBg != "" {
-		// ANSI escape sequence to set terminal window background color block (if supported by terminal emulator)
-		// Or clear the screen with background color
-		fmt.Printf("\033[48;5;15m") // Cream background clear fallback
-	}
 	fmt.Print(RenderBanner(version))
 }
 
 func PressEnterToContinue() {
 	fmt.Println()
-	fmt.Print(Muted.Render("Press Enter to return to main menu..."))
+	fmt.Print(Muted.Render("  Press Enter to continue..."))
 	reader := bufio.NewReader(os.Stdin)
 	_, _ = reader.ReadString('\n')
 }

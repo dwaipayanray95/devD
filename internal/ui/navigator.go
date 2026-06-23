@@ -54,7 +54,7 @@ func (m *NavigatorModel) readDir() {
 		}
 	}
 	m.Entries = dirs
-	
+
 	// Reset cursor or cap it (we have 2 static items at index 0 and 1)
 	if m.Cursor >= len(m.Entries)+2 {
 		m.Cursor = 0
@@ -134,27 +134,29 @@ func (m NavigatorModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 func (m NavigatorModel) View() string {
 	var s strings.Builder
 	s.WriteString(RenderBanner(Version))
-	
-	s.WriteString(Accent.Render(fmt.Sprintf("  📂  CD Navigator: %s\n\n", m.CurrentDir)))
+
+	// Path breadcrumb
+	s.WriteString(RenderDivider("Navigate", 54) + "\n")
+	s.WriteString("   " + Dim.Render("◆ ") + Accent.Render(m.CurrentDir) + "\n\n")
 
 	if m.Error != nil {
-		s.WriteString(Error.Render(fmt.Sprintf("  Error reading directory: %v\n\n", m.Error)))
-		s.WriteString(Muted.Render("  Press Esc to cancel\n"))
+		s.WriteString("   " + Error.Render(fmt.Sprintf("Error reading directory: %v", m.Error)) + "\n\n")
+		s.WriteString("   " + Muted.Render("Press Esc to cancel") + "\n")
 		return s.String()
 	}
 
 	// Option 0: Confirm selection of current directory
 	if m.Cursor == 0 {
-		s.WriteString(Primary.Render("    ❯ ") + Bright.Render("✔ Select this folder ("+filepath.Base(m.CurrentDir)+")") + "\n")
+		s.WriteString("   " + Accent.Render("▌") + " " + Success.Render("✔") + "  " + Bright.Render("Select this folder ("+filepath.Base(m.CurrentDir)+")") + "\n")
 	} else {
-		s.WriteString(Muted.Render("      ✔ Select this folder ("+filepath.Base(m.CurrentDir)+")") + "\n")
+		s.WriteString("     " + Dim.Render("✔") + "  " + Muted.Render("Select this folder ("+filepath.Base(m.CurrentDir)+")") + "\n")
 	}
 
 	// Option 1: .. (Go Up / Go Back)
 	if m.Cursor == 1 {
-		s.WriteString(Primary.Render("    ❯ ") + Bright.Render("↩ .. (Parent Directory)") + "\n")
+		s.WriteString("   " + Accent.Render("▌") + " " + Info.Render("◁") + "  " + Bright.Render(".. (Parent Directory)") + "\n")
 	} else {
-		s.WriteString(Muted.Render("      ↩ .. (Parent Directory)") + "\n")
+		s.WriteString("     " + Dim.Render("◁") + "  " + Muted.Render(".. (Parent Directory)") + "\n")
 	}
 
 	// Directories (offset by 2)
@@ -162,14 +164,17 @@ func (m NavigatorModel) View() string {
 		idx := i + 2
 		name := entry.Name()
 		if idx == m.Cursor {
-			s.WriteString(Primary.Render("    ❯ ") + Bright.Render("📁 "+name) + "\n")
+			s.WriteString("   " + Accent.Render("▌") + " " + Accent.Render("▸") + "  " + Bright.Render(name) + "\n")
 		} else {
-			s.WriteString(Muted.Render("      📁 "+name) + "\n")
+			s.WriteString("     " + Dim.Render("▸") + "  " + Muted.Render(name) + "\n")
 		}
 	}
 
-	s.WriteString("\n")
-	s.WriteString(Muted.Render("  ▲/▼ Navigate  •  Enter Open/Select  •  Letter Jump  •  Esc Cancel\n"))
+	s.WriteString("\n" + Dim.Render("  ────────────────────────────────────────────────────") + "\n")
+	s.WriteString("   " + Muted.Render("↑↓ navigate") + Dim.Render("  ·  ") +
+		Muted.Render("enter select") + Dim.Render("  ·  ") +
+		Muted.Render("type to jump") + Dim.Render("  ·  ") +
+		Muted.Render("esc cancel") + "\n")
 
 	return s.String()
 }

@@ -12,12 +12,11 @@ import (
 // ==========================================
 
 type SelectModel struct {
-	Title      string
-	Choices    []string
-	Cursor     int
-	Chosen     string
-	Cancelled  bool
-	EscPressed bool
+	Title     string
+	Choices   []string
+	Cursor    int
+	Chosen    string
+	Cancelled bool
 }
 
 func (m SelectModel) Init() tea.Cmd {
@@ -54,17 +53,22 @@ func (m SelectModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 func (m SelectModel) View() string {
 	var s strings.Builder
-	s.WriteString(Accent.Render("  │  ") + Bright.Render(m.Title) + "\n")
-	s.WriteString(Muted.Render("  │") + "\n")
+
+	s.WriteString(RenderBanner(Version))
+	s.WriteString(RenderDivider(m.Title, 54) + "\n\n")
 
 	for i, choice := range m.Choices {
 		if i == m.Cursor {
-			s.WriteString(Primary.Render("    ❯ ") + Bright.Render(choice) + "\n")
+			s.WriteString("   " + Accent.Render("▌") + " " + Bright.Render(choice) + "\n")
 		} else {
-			s.WriteString(Muted.Render("      " + choice) + "\n")
+			s.WriteString("     " + Muted.Render(choice) + "\n")
 		}
 	}
-	s.WriteString("\n" + Muted.Render("     ▲/▼ Navigate  •  Enter Select  •  Esc Cancel") + "\n")
+
+	s.WriteString("\n" + Dim.Render("  ────────────────────────────────────────────────────") + "\n")
+	s.WriteString("   " + Muted.Render("↑↓ navigate") + Dim.Render("  ·  ") +
+		Muted.Render("enter select") + Dim.Render("  ·  ") +
+		Muted.Render("esc cancel") + "\n")
 	return s.String()
 }
 
@@ -131,21 +135,24 @@ func (m InputModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 func (m InputModel) View() string {
 	var s strings.Builder
-	s.WriteString(Accent.Render("  │  ") + Bright.Render(m.Title) + "\n")
+
+	s.WriteString(RenderBanner(Version))
+	s.WriteString(RenderDivider(m.Title, 54) + "\n")
 	if m.DefaultValue != "" {
-		s.WriteString(Muted.Render("  │  Default: ") + Muted.Render(m.DefaultValue) + "\n")
+		s.WriteString("   " + Dim.Render("default: "+m.DefaultValue) + "\n")
 	}
-	s.WriteString(Muted.Render("  │") + "\n")
+	s.WriteString("\n")
 
 	displayVal := m.Value
 	if displayVal == "" && m.DefaultValue != "" {
-		displayVal = Muted.Render(m.DefaultValue)
+		s.WriteString("   " + Accent.Render("❯") + " " + Dim.Render(m.DefaultValue) + Dim.Render("▏") + "\n")
 	} else {
-		displayVal = Bright.Render(displayVal)
+		s.WriteString("   " + Accent.Render("❯") + " " + Bright.Render(displayVal) + Dim.Render("▏") + "\n")
 	}
 
-	s.WriteString("    " + displayVal + Muted.Render("_") + "\n\n")
-	s.WriteString(Muted.Render("     Enter Confirm  •  Esc Cancel") + "\n")
+	s.WriteString("\n" + Dim.Render("  ────────────────────────────────────────────────────") + "\n")
+	s.WriteString("   " + Muted.Render("enter confirm") + Dim.Render("  ·  ") +
+		Muted.Render("esc cancel") + "\n")
 	return s.String()
 }
 
@@ -210,22 +217,21 @@ func (m ConfirmModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 func (m ConfirmModel) View() string {
 	var s strings.Builder
-	s.WriteString(Accent.Render("  │  ") + Bright.Render(m.Title) + "\n")
-	s.WriteString(Muted.Render("  │") + "\n")
 
-	yesStr := " Yes "
-	noStr := " No "
+	s.WriteString(RenderBanner(Version))
+	s.WriteString(RenderDivider(m.Title, 54) + "\n\n")
 
 	if m.DefaultValue {
-		yesStr = Bright.Render("[ Yes ]")
-		noStr = Muted.Render("  No  ")
+		s.WriteString("   " + Highlight.Render("  Yes  ") + "    " + Muted.Render("  No  ") + "\n")
 	} else {
-		yesStr = Muted.Render("  Yes  ")
-		noStr = Bright.Render("[ No ]")
+		s.WriteString("   " + Muted.Render("  Yes  ") + "    " + Highlight.Render("  No  ") + "\n")
 	}
 
-	s.WriteString("    " + yesStr + "  " + noStr + "\n\n")
-	s.WriteString(Muted.Render("     y/n  •  ◀/▶ Toggle  •  Enter Confirm  •  Esc Cancel") + "\n")
+	s.WriteString("\n" + Dim.Render("  ────────────────────────────────────────────────────") + "\n")
+	s.WriteString("   " + Muted.Render("y/n") + Dim.Render("  ·  ") +
+		Muted.Render("←→ toggle") + Dim.Render("  ·  ") +
+		Muted.Render("enter confirm") + Dim.Render("  ·  ") +
+		Muted.Render("esc cancel") + "\n")
 	return s.String()
 }
 

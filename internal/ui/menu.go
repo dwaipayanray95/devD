@@ -3,53 +3,54 @@ package ui
 import (
 	"strings"
 
-	"github.com/charmbracelet/lipgloss"
 	tea "github.com/charmbracelet/bubbletea"
 )
 
 type MenuItem struct {
-	Icon  string
+	Icon  string // Unicode symbol (◆, ▶, ◼, etc.)
 	Label string
 	Value string
 }
 
 type MenuModel struct {
-	Version      string
-	GitActive    bool
-	Choices      []MenuItem
-	Cursor       int
-	InputBuffer  string
-	EscPressed   bool
-	ChosenValue  string
-	ChosenType   string // "menu" or "input"
-	Quitting     bool
+	Version     string
+	GitActive   bool
+	ThemeName   string
+	Choices     []MenuItem
+	Cursor      int
+	InputBuffer string
+	EscPressed  bool
+	ChosenValue string
+	ChosenType  string // "menu" or "input"
+	Quitting    bool
 }
 
-func NewMenuModel(version string, gitActive bool) MenuModel {
+func NewMenuModel(version string, gitActive bool, themeName string) MenuModel {
 	var choices []MenuItem
 	if gitActive {
 		choices = []MenuItem{
-			{Icon: "🌿", Label: "Git Controls", Value: "git-controls"},
-			{Icon: "🏃", Label: "Run App (Auto-Detect)", Value: "run-app"},
-			{Icon: "📦", Label: "Build App (Auto-Detect)", Value: "build-app"},
-			{Icon: "🚀", Label: "Bump Version", Value: "bump"},
-			{Icon: "🤖", Label: "Ask Gemini / AI Query", Value: "ai"},
-			{Icon: "🛠", Label: "Settings", Value: "settings"},
-			{Icon: "❌", Label: "Exit", Value: "exit"},
+			{Icon: "◆", Label: "Git Controls", Value: "git-controls"},
+			{Icon: "▶", Label: "Run App (Auto-Detect)", Value: "run-app"},
+			{Icon: "◼", Label: "Build App (Auto-Detect)", Value: "build-app"},
+			{Icon: "▲", Label: "Bump Version", Value: "bump"},
+			{Icon: "◇", Label: "Ask Gemini / AI Query", Value: "ai"},
+			{Icon: "●", Label: "Settings", Value: "settings"},
+			{Icon: "✕", Label: "Exit", Value: "exit"},
 		}
 	} else {
 		choices = []MenuItem{
-			{Icon: "🏃", Label: "Run App (Auto-Detect)", Value: "run-app"},
-			{Icon: "📦", Label: "Build App (Auto-Detect)", Value: "build-app"},
-			{Icon: "🤖", Label: "Ask Gemini / AI Query", Value: "ai"},
-			{Icon: "🛠", Label: "Settings", Value: "settings"},
-			{Icon: "❌", Label: "Exit", Value: "exit"},
+			{Icon: "▶", Label: "Run App (Auto-Detect)", Value: "run-app"},
+			{Icon: "◼", Label: "Build App (Auto-Detect)", Value: "build-app"},
+			{Icon: "◇", Label: "Ask Gemini / AI Query", Value: "ai"},
+			{Icon: "●", Label: "Settings", Value: "settings"},
+			{Icon: "✕", Label: "Exit", Value: "exit"},
 		}
 	}
 
 	return MenuModel{
 		Version:     version,
 		GitActive:   gitActive,
+		ThemeName:   themeName,
 		Choices:     choices,
 		Cursor:      0,
 		InputBuffer: "",
@@ -130,48 +131,34 @@ func (m MenuModel) View() string {
 
 	var s strings.Builder
 
-	// Render perfect banner using Lip Gloss engine
+	// ── Banner ──────────────────────────────
 	s.WriteString(RenderBanner(m.Version))
 
-	var bgStyle lipgloss.Style
-	if AppBg != "" {
-		bgStyle = lipgloss.NewStyle().Background(lipgloss.Color(AppBg))
-	}
+	// ── Menu Section ────────────────────────
+	s.WriteString(RenderDivider("Menu", 54) + "\n\n")
 
-	// Menu choices
-	s.WriteString(Accent.Render("  📋  SELECTABLE MENU\n"))
 	for i, choice := range m.Choices {
-		cursorCol := "      "
 		if i == m.Cursor {
-			cursorCol = "    ❯ "
+			// Selected: accent left bar + bright text
+			s.WriteString("   " + Accent.Render("▌") + " " + Accent.Render(choice.Icon) + "  " + Bright.Render(choice.Label) + "\n")
+		} else {
+			s.WriteString("     " + Dim.Render(choice.Icon) + "  " + Muted.Render(choice.Label) + "\n")
 		}
-
-		// Because 🌿 renders as a single-column width in many modern terminal fonts,
-		// we append an extra trailing space to it to align perfectly with the double-column emojis.
-		emojiStr := choice.Icon
-		if choice.Icon == "🌿" {
-			emojiStr = "🌿 "
-		}
-
-		labelStyle := Muted
-		if i == m.Cursor {
-			labelStyle = Bright
-		}
-
-		renderedLine := cursorCol + emojiStr + "  " + labelStyle.Render(choice.Label)
-		s.WriteString(renderedLine + "\n")
 	}
-	s.WriteString(bgStyle.Render("\n"))
+	s.WriteString("\n")
 
-	// Input buffer
-	s.WriteString(Accent.Render("  ⌨️  COMMAND / SHORTCUT\n"))
-	s.WriteString(bgStyle.Render("      devD > ") + Bright.Render(m.InputBuffer) + Muted.Render("_") + bgStyle.Render("\n\n"))
+	// ── Command Input Section ───────────────
+	s.WriteString(RenderDivider("Command", 54) + "\n\n")
+	s.WriteString("   " + Accent.Render("❯") + " " + Bright.Render(m.InputBuffer) + Dim.Render("▏") + "\n\n")
 
-	// Helper hints
+	// ── Footer ──────────────────────────────
 	if m.EscPressed {
-		s.WriteString(bgStyle.Render("     ") + Warning.Render("⚠️  Press Escape again to quit / exit devD companion\n"))
+		s.WriteString("   " + Warning.Render("Press Escape again to exit devD") + "\n")
 	} else {
-		s.WriteString(bgStyle.Render("     ") + Muted.Render("▲/▼ Navigate menu  •  Type custom command / cd   •  Enter Confirm\n"))
+		s.WriteString(RenderDivider("", 54) + "\n")
+		s.WriteString("   " + Muted.Render("↑↓ navigate") + Dim.Render("  ·  ") +
+			Muted.Render("type command") + Dim.Render("  ·  ") +
+			Muted.Render("enter select") + "\n")
 	}
 
 	return s.String()
