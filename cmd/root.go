@@ -70,9 +70,35 @@ func Execute(ver string) {
 	
 	ui.InitTheme(activeTheme)
 
+	// Check for updates on startup
+	go checkAndPromptUpdate()
+
 	if err := RootCmd.Execute(); err != nil {
 		fmt.Println(err)
 		os.Exit(1)
+	}
+}
+
+func checkAndPromptUpdate() {
+	// Call npm view to get the latest published version of the package.
+	// Since we download via git or npm, we query npm view.
+	cmd := exec.Command("npm", "view", "dev-d", "version")
+	output, err := cmd.Output()
+	if err != nil {
+		return // Silently skip if offline or npm not installed
+	}
+	latest := strings.TrimSpace(string(output))
+	if latest == "" {
+		return
+	}
+	
+	// Simple inequality check. If different from current Version, prompt.
+	if latest != Version {
+		fmt.Printf("\n  %s A new version of devD is available: %s (current: %s)\n", ui.Info.Render("✦"), ui.Success.Render(latest), ui.Muted.Render(Version))
+		confirm, err := ui.PromptConfirm("  Would you like to auto-download and update now?", true)
+		if err == nil && confirm {
+			RunSelfUpdate()
+		}
 	}
 }
 
