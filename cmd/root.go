@@ -437,9 +437,9 @@ func RunSelfUpdate() {
 	ui.PrintBanner(Version)
 	fmt.Println(ui.Info.Render("Updating devD CLI..."))
 	
-	// Production: run npm install -g dwaipayanray95/devD
-	fmt.Println(ui.Muted.Render("Executing: npm install -g dwaipayanray95/devD"))
-	cmd := exec.Command("npm", "install", "-g", "dwaipayanray95/devD")
+	// Production: run npm install -g dwaipayanray95/devD --no-progress
+	fmt.Println(ui.Muted.Render("Executing: npm install -g dwaipayanray95/devD --no-progress"))
+	cmd := exec.Command("npm", "install", "-g", "dwaipayanray95/devD", "--no-progress")
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	cmd.Stdin = os.Stdin
