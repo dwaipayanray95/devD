@@ -141,24 +141,16 @@ func (m MenuModel) View() string {
 	// Menu choices
 	s.WriteString(Accent.Render("  📋  SELECTABLE MENU\n"))
 	for i, choice := range m.Choices {
-		// Use Lip Gloss styles with explicit widths to align the text columns
-		cursorCol := "    "
+		cursorCol := "      "
 		if i == m.Cursor {
-			cursorCol = "  ❯ "
+			cursorCol = "    ❯ "
 		}
 
-		// Set explicit width on the cursor column to prevent shifting
-		cursorStyle := lipgloss.NewStyle().Width(4)
-		if i == m.Cursor {
-			cursorStyle = cursorStyle.Inherit(Primary)
-		} else {
-			cursorStyle = cursorStyle.Inherit(Muted)
-		}
-
-		// Ensure the icon occupies exactly 3 character columns (icon + space)
-		iconStyle := lipgloss.NewStyle().Width(3)
-		if AppBg != "" {
-			iconStyle = iconStyle.Background(lipgloss.Color(AppBg))
+		// Because 🌿 renders as a single-column width in many modern terminal fonts,
+		// we append an extra trailing space to it to align perfectly with the double-column emojis.
+		emojiStr := choice.Icon
+		if choice.Icon == "🌿" {
+			emojiStr = "🌿 "
 		}
 
 		labelStyle := Muted
@@ -166,7 +158,7 @@ func (m MenuModel) View() string {
 			labelStyle = Bright
 		}
 
-		renderedLine := cursorStyle.Render(cursorCol) + iconStyle.Render(choice.Icon) + " " + labelStyle.Render(choice.Label)
+		renderedLine := cursorCol + emojiStr + "  " + labelStyle.Render(choice.Label)
 		s.WriteString(renderedLine + "\n")
 	}
 	s.WriteString(bgStyle.Render("\n"))
