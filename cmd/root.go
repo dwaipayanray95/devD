@@ -28,6 +28,11 @@ var RootCmd = &cobra.Command{
 }
 
 func Execute(ver string) {
+	// Scale terminal to at least 42 rows and 65 columns
+	fmt.Print("\033[8;42;65t")
+	// Clear the terminal screen and reset cursor position so it starts at the top
+	fmt.Print("\033[H\033[2J")
+	
 	Version = config.GetVersion()
 	
 	// Load stored theme or run onboarding

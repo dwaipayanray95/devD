@@ -391,7 +391,7 @@ func RenderBanner(version string) string {
 }
 
 func PrintBanner(version string) {
-	fmt.Print("\033[H\033[2J") // Clear terminal screen and reset cursor
+	fmt.Print("\033[H\033[2J\033[3J") // Clear screen, reset cursor, clear scrollback buffer
 	fmt.Print(RenderBanner(version))
 }
 
@@ -400,4 +400,5 @@ func PressEnterToContinue() {
 	fmt.Print(Muted.Render("  Press Enter to continue..."))
 	reader := bufio.NewReader(os.Stdin)
 	_, _ = reader.ReadString('\n')
+	fmt.Print("\033[H\033[2J\033[3J") // Clear scrollback when leaving the prompt
 }
