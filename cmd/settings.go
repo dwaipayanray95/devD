@@ -162,34 +162,68 @@ func ShowPreferencesMenu() {
 
 func ShowHelpMenu() {
 	ui.PrintBanner(Version)
-	fmt.Println(ui.RenderDivider("Help & Documentation", 54))
+	fmt.Println(ui.RenderDivider("Commands Reference", 54))
 	fmt.Println()
 
+	// Print commands in a clean, compact two-column format
 	commandsHelp := []struct {
 		Cmd  string
 		Desc string
 	}{
-		{"run", "Run the project (auto-detected framework)"},
-		{"build", "Build the project (auto-detected framework)"},
-		{"status", "Show repository status dashboard"},
-		{"commit", "Run conventional commit wizard"},
-		{"sync", "Pull remote changes and push local commits"},
-		{"pull", "Pull remote changes (git pull --rebase)"},
-		{"stash", "Save current modifications to stash stack"},
-		{"pop", "Restore/apply the last stashed modifications"},
-		{"bump", "Bump package version dynamically"},
-		{"tag", "Create and push a release Git tag"},
-		{"release", "Create a new GitHub Release"},
-		{"ai", "Query Gemini AI assistant directly"},
-		{"help", "Show command help list and descriptions"},
-		{"restart", "Restart the devD CLI companion"},
-		{"exit", "Exit the devD companion CLI"},
+		{"run / dev", "Run auto-detected app"},
+		{"build", "Build auto-detected app"},
+		{"status / s", "Repo status dashboard"},
+		{"commit / c", "Conventional Commit Wizard"},
+		{"sync / y", "Sync repo (Pull & Push)"},
+		{"pull", "Pull upstream (rebase)"},
+		{"stash", "Save modifications to stash"},
+		{"pop", "Apply last stash"},
+		{"bump / b", "Bump package version"},
+		{"tag / t", "Create & push release tag"},
+		{"release", "Create GitHub release"},
+		{"ai / a", "Query Gemini Assistant"},
+		{"settings", "Theme & GitHub configurations"},
+		{"restart / r", "Restart devD session"},
+		{"exit / q", "Exit devD companion"},
 	}
 
-	for _, item := range commandsHelp {
-		fmt.Printf("   %s\n", ui.Bright.Render(item.Cmd))
-		fmt.Printf("   %s %s\n\n", ui.Success.Render("↳"), ui.Muted.Render(item.Desc))
+	for i := 0; i < len(commandsHelp); i += 2 {
+		left := commandsHelp[i]
+		leftStr := fmt.Sprintf("  %s %s", ui.Bright.Render(fmt.Sprintf("%-12s", left.Cmd)), ui.Muted.Render(left.Desc))
+		
+		if i+1 < len(commandsHelp) {
+			right := commandsHelp[i+1]
+			rightStr := fmt.Sprintf("  %s %s", ui.Bright.Render(fmt.Sprintf("%-12s", right.Cmd)), ui.Muted.Render(right.Desc))
+			// Space columns to keep clean alignment
+			spacing := 34 - len([]rune(left.Cmd)) - len([]rune(left.Desc))
+			if spacing < 2 {
+				spacing = 2
+			}
+			fmt.Print(leftStr + strings.Repeat(" ", spacing) + rightStr + "\n")
+		} else {
+			fmt.Print(leftStr + "\n")
+		}
 	}
+	fmt.Println()
+
+	fmt.Println(ui.RenderDivider("Key Bindings & Shortcuts", 54))
+	fmt.Println()
+	
+	keyHelp := []struct {
+		Keys string
+		Desc string
+	}{
+		{"Ctrl + A", "Select & copy all typed text"},
+		{"Ctrl + X", "Cut (copy & clear) typed text"},
+		{"Ctrl + V", "Paste from system clipboard"},
+		{"Ctrl + W", "Fast backspace (delete word)"},
+		{"Ctrl + C", "Force quit devD companion CLI"},
+	}
+
+	for _, kh := range keyHelp {
+		fmt.Printf("  %-12s %s\n", ui.Bright.Render(kh.Keys), ui.Muted.Render(kh.Desc))
+	}
+	fmt.Println()
 
 	ui.PressEnterToContinue()
 }

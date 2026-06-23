@@ -3,6 +3,7 @@ package ui
 import (
 	"strings"
 
+	"github.com/atotto/clipboard"
 	tea "github.com/charmbracelet/bubbletea"
 )
 
@@ -21,8 +22,9 @@ type MenuModel struct {
 	InputBuffer string
 	EscPressed  bool
 	ChosenValue string
-	ChosenType  string // "menu" or "input"
-	Quitting    bool
+	ChosenType   string // "menu" or "input"
+	Quitting     bool
+	TextSelected bool
 }
 
 func NewMenuModel(version string, gitActive bool, themeName string) MenuModel {
@@ -66,6 +68,25 @@ func (m MenuModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
 		switch msg.String() {
+		case "ctrl+v":
+			m.EscPressed = false
+			if text, err := clipboard.ReadAll(); err == nil {
+				m.InputBuffer += text
+			}
+
+		case "ctrl+a":
+			m.EscPressed = false
+			if len(m.InputBuffer) > 0 {
+				_ = clipboard.WriteAll(m.InputBuffer)
+			}
+
+		case "ctrl+x":
+			m.EscPressed = false
+			if len(m.InputBuffer) > 0 {
+				_ = clipboard.WriteAll(m.InputBuffer)
+				m.InputBuffer = ""
+			}
+
 		case "ctrl+c":
 			m.Quitting = true
 			m.ChosenType = "menu"
@@ -107,15 +128,25 @@ func (m MenuModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 			return m, tea.Quit
 
+		case "ctrl+w": // Fast backspace - delete word
+			m.EscPressed = false
+			trimmed := strings.TrimRight(m.InputBuffer, " ")
+			idx := strings.LastIndex(trimmed, " ")
+			if idx >= 0 {
+				m.InputBuffer = trimmed[:idx+1]
+			} else {
+				m.InputBuffer = ""
+			}
+
 		case "backspace":
 			m.EscPressed = false
 			if len(m.InputBuffer) > 0 {
-				m.InputBuffer = m.InputBuffer[:len(m.InputBuffer)-1]
+				runes := []rune(m.InputBuffer)
+				m.InputBuffer = string(runes[:len(runes)-1])
 			}
 
 		default:
 			m.EscPressed = false
-			// Add printable characters to input buffer
 			if len(msg.String()) == 1 {
 				m.InputBuffer += msg.String()
 			}
@@ -123,6 +154,7 @@ func (m MenuModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	}
 	return m, nil
 }
+
 
 func (m MenuModel) View() string {
 	if m.Quitting {
