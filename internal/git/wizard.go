@@ -107,6 +107,41 @@ func RunCommitWizard() {
 	commitRes := Commit(msg)
 	if commitRes.Success {
 		fmt.Println(ui.Success.Render("\n✔ Commit created successfully!"))
+		
+		// Prompt to push online
+		fmt.Println()
+		pushConfirm, err := ui.PromptConfirm("Push commits to remote repository now?", true)
+		if err == nil && pushConfirm {
+			// Ask which branch to push to
+			ui.PrintBanner(ui.GetProjectInfo())
+			fmt.Println(ui.Accent.Render("  │  Push Commits Online"))
+			fmt.Println()
+			
+			choices, _ := getBranchList()
+			if len(choices) > 0 {
+				chosenDisplayName, err := ui.PromptSelect("Select branch to push to:", choices)
+				if err == nil {
+					branchName := chosenDisplayName
+					branchName = strings.ReplaceAll(branchName, "🌿 ", "")
+					branchName = strings.ReplaceAll(branchName, "🌎 ", "")
+					branchName = strings.ReplaceAll(branchName, " (current)", "")
+					branchName = strings.TrimSpace(branchName)
+					
+					ui.PrintBanner(ui.GetProjectInfo())
+					fmt.Printf("%s Pushing commits to remote branch: %s...\n\n", ui.Info.Render("❯"), ui.Bright.Render(branchName))
+					
+					// Execute git push origin <branch>
+					pushRes := RunGitCommand([]string{"push", "origin", branchName})
+					if pushRes.Success {
+						fmt.Println(ui.Success.Render("\n✔ Pushed successfully!"))
+					} else {
+						fmt.Printf(ui.Error.Render("\n✖ Push failed: %s\n"), pushRes.Stderr)
+					}
+				}
+			} else {
+				fmt.Println(ui.Warning.Render("No branches found to push to."))
+			}
+		}
 	} else {
 		fmt.Println(ui.Error.Render("\n✖ Commit failed: " + commitRes.Error.Error()))
 	}
