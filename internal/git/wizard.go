@@ -160,33 +160,53 @@ func getBranchList() ([]string, map[string]BranchInfo) {
 	}
 
 	var choices []string
+	seenBranches := make(map[string]bool)
+	
 	lines := strings.Split(res.Stdout, "\n")
 	for _, line := range lines {
 		line = strings.TrimSpace(line)
 		if line == "" {
 			continue
 		}
+		
+		// Skip origin/HEAD pointers
+		if strings.Contains(line, "origin/HEAD") || strings.Contains(line, "->") {
+			continue
+		}
+		
 		isCurrent := strings.HasPrefix(line, "*")
 		name := strings.TrimSpace(strings.ReplaceAll(line, "*", ""))
 		isRemote := strings.HasPrefix(name, "remotes/")
 		if isRemote {
 			name = strings.ReplaceAll(name, "remotes/", "")
 		}
+		
+		// Clean remote origin/ prefix for de-duplication mapping
+		cleanName := name
+		if strings.HasPrefix(name, "origin/") {
+			cleanName = strings.TrimPrefix(name, "origin/")
+		}
+
+		// Skip duplicate remote tracking branches if local branch already seen
+		if seenBranches[cleanName] && isRemote {
+			continue
+		}
+		seenBranches[cleanName] = true
 
 		info := BranchInfo{
-			Name:      name,
+			Name:      cleanName,
 			IsCurrent: isCurrent,
 			IsRemote:  isRemote,
 		}
-		branchesMap[name] = info
+		branchesMap[cleanName] = info
 
-		displayName := name
+		displayName := cleanName
 		if isCurrent {
-			displayName = "🌿 " + name + " (current)"
+			displayName = "🌿 " + cleanName + " (current)"
 		} else if isRemote {
-			displayName = "🌎 " + name
+			displayName = "🌎 " + cleanName
 		} else {
-			displayName = "🌿 " + name
+			displayName = "🌿 " + cleanName
 		}
 		choices = append(choices, displayName)
 	}
