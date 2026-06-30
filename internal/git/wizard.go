@@ -511,40 +511,82 @@ func CreateGitHubRelease() {
 	ui.PressEnterToContinue()
 }
 
-// BumpVersion increments version in package.json natively without external bump-version node module
+// BumpVersion increments version in package.json (or pubspec.yaml for Flutter) natively
 func BumpVersion() {
 	ui.PrintBanner(ui.GetProjectInfo())
 	fmt.Println(ui.Accent.Render("  │  Native Version Bumper"))
 	fmt.Println()
 
-	// 1. Read package.json
-	data, err := os.ReadFile("package.json")
+	var isFlutter bool
+	var versionFile string
+	var currentVerStr string
+
+	// Determine if we are bumping package.json or pubspec.yaml
+	if _, err := os.Stat("pubspec.yaml"); err == nil {
+		isFlutter = true
+		versionFile = "pubspec.yaml"
+	} else if _, err := os.Stat("package.json"); err == nil {
+		versionFile = "package.json"
+	} else {
+		fmt.Println(ui.Error.Render("✖ No package.json or pubspec.yaml found in the current directory."))
+		ui.PressEnterToContinue()
+		return
+	}
+
+	// 1. Read file
+	data, err := os.ReadFile(versionFile)
 	if err != nil {
-		fmt.Println(ui.Error.Render("✖ Error reading package.json: " + err.Error()))
+		fmt.Println(ui.Error.Render(fmt.Sprintf("✖ Error reading %s: %s", versionFile, err.Error())))
 		ui.PressEnterToContinue()
 		return
 	}
 
 	var packageMap map[string]interface{}
-	if err := json.Unmarshal(data, &packageMap); err != nil {
-		fmt.Println(ui.Error.Render("✖ Error parsing package.json: " + err.Error()))
-		ui.PressEnterToContinue()
-		return
+	var yamlLines []string
+
+	if !isFlutter {
+		if err := json.Unmarshal(data, &packageMap); err != nil {
+			fmt.Println(ui.Error.Render("✖ Error parsing package.json: " + err.Error()))
+			ui.PressEnterToContinue()
+			return
+		}
+		if v, ok := packageMap["version"].(string); ok && v != "" {
+			currentVerStr = v
+		} else {
+			currentVerStr = "1.0.0"
+		}
+	} else {
+		// Read yaml lines to extract and update the version string safely without ruining yaml formatting
+		yamlLines = strings.Split(string(data), "\n")
+		for _, line := range yamlLines {
+			trimmed := strings.TrimSpace(line)
+			if strings.HasPrefix(trimmed, "version:") {
+				currentVerStr = strings.TrimSpace(strings.TrimPrefix(trimmed, "version:"))
+				break
+			}
+		}
+		if currentVerStr == "" {
+			currentVerStr = "1.0.0+1"
+		}
 	}
 
-	currentVerStr, ok := packageMap["version"].(string)
-	if !ok || currentVerStr == "" {
-		currentVerStr = "1.0.0"
-	}
+	fmt.Printf("   Current Version: %s (%s)\n\n", ui.Bright.Render(currentVerStr), versionFile)
 
-	fmt.Printf("   Current Version: %s\n\n", ui.Bright.Render(currentVerStr))
-
-	// Parse current version (assuming simple SemVer format)
+	// Parse current version (assuming simple SemVer format, handling Flutter build number '+')
 	var major, minor, patch int
+	var buildNumber string
 	var preRelease string
-	parts := strings.Split(currentVerStr, "-")
-	
-	semVerPart := parts[0]
+
+	// Split Flutter build number if present
+	versionParts := strings.Split(currentVerStr, "+")
+	semVerPart := versionParts[0]
+	if len(versionParts) > 1 {
+		buildNumber = versionParts[1]
+	}
+
+	// Split prerelease if present
+	parts := strings.Split(semVerPart, "-")
+	semVerPart = parts[0]
 	if len(parts) > 1 {
 		preRelease = strings.Join(parts[1:], "-")
 	}
@@ -581,25 +623,57 @@ func BumpVersion() {
 		nextVersion = customVer
 	}
 
-	if preRelease != "" && !strings.HasPrefix(chosenOption, "custom") {
-		confirmPre, _ := ui.PromptConfirm(fmt.Sprintf("Append pre-release tag '-%s' to new version?", preRelease), true)
-		if confirmPre {
-			nextVersion = fmt.Sprintf("%s-%s", nextVersion, preRelease)
+	// If we did a standard increment, we might want to restore pre-release tags or update flutter build numbers
+	if !strings.HasPrefix(chosenOption, "custom") {
+		if preRelease != "" {
+			confirmPre, _ := ui.PromptConfirm(fmt.Sprintf("Append pre-release tag '-%s' to new version?", preRelease), true)
+			if confirmPre {
+				nextVersion = fmt.Sprintf("%s-%s", nextVersion, preRelease)
+			}
+		}
+
+		if isFlutter && buildNumber != "" {
+			// Auto increment Flutter build number
+			var buildVal int
+			_, _ = fmt.Sscanf(buildNumber, "%d", &buildVal)
+			nextBuildNumber := fmt.Sprintf("%d", buildVal+1)
+
+			confirmBuild, _ := ui.PromptConfirm(fmt.Sprintf("Increment Flutter build number (from +%s to +%s)?", buildNumber, nextBuildNumber), true)
+			if confirmBuild {
+				nextVersion = fmt.Sprintf("%s+%s", nextVersion, nextBuildNumber)
+			} else {
+				nextVersion = fmt.Sprintf("%s+%s", nextVersion, buildNumber)
+			}
 		}
 	}
 
-	// 2. Update version and write package.json back
-	packageMap["version"] = nextVersion
-	updatedData, err := json.MarshalIndent(packageMap, "", "  ")
-	if err != nil {
-		fmt.Println(ui.Error.Render("✖ Error formatting package.json: " + err.Error()))
-		ui.PressEnterToContinue()
-		return
+	// Write back
+	if !isFlutter {
+		packageMap["version"] = nextVersion
+		updatedData, err := json.MarshalIndent(packageMap, "", "  ")
+		if err != nil {
+			fmt.Println(ui.Error.Render("✖ Error formatting package.json: " + err.Error()))
+			ui.PressEnterToContinue()
+			return
+		}
+		err = os.WriteFile("package.json", updatedData, 0644)
+	} else {
+		// Update line-by-line to preserve yaml comments/structure
+		for idx, line := range yamlLines {
+			trimmed := strings.TrimSpace(line)
+			if strings.HasPrefix(trimmed, "version:") {
+				// preserve leading indentation
+				indent := line[:strings.Index(line, "version:")]
+				yamlLines[idx] = fmt.Sprintf("%sversion: %s", indent, nextVersion)
+				break
+			}
+		}
+		updatedData := strings.Join(yamlLines, "\n")
+		err = os.WriteFile("pubspec.yaml", []byte(updatedData), 0644)
 	}
 
-	err = os.WriteFile("package.json", updatedData, 0644)
 	if err != nil {
-		fmt.Println(ui.Error.Render("✖ Error writing package.json: " + err.Error()))
+		fmt.Println(ui.Error.Render(fmt.Sprintf("✖ Error writing %s: %s", versionFile, err.Error())))
 		ui.PressEnterToContinue()
 		return
 	}
