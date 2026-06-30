@@ -1,11 +1,22 @@
 package main
 
 import (
+	_ "embed"
+	"encoding/json"
+
 	"github.com/dwaipayanray95/devD/cmd"
 )
 
-const version = "1.1.0"
+//go:embed package.json
+var packageJSON []byte
 
 func main() {
-	cmd.Execute(version)
+	var pkg struct {
+		Version string `json:"version"`
+	}
+	ver := "1.1.0"
+	if err := json.Unmarshal(packageJSON, &pkg); err == nil && pkg.Version != "" {
+		ver = pkg.Version
+	}
+	cmd.Execute(ver)
 }

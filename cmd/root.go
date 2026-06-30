@@ -33,8 +33,7 @@ func Execute(ver string) {
 	// Clear the terminal screen and reset cursor position so it starts at the top
 	fmt.Print("\033[H\033[2J")
 	
-	// If a specific version string was passed from main.go (and it is not the default template "1.1.0"), use it as the primary version.
-	if ver != "1.1.0" && ver != "" {
+	if ver != "" {
 		Version = ver
 	} else {
 		Version = config.GetVersion()
@@ -368,14 +367,7 @@ func HandleMenuAction(action string) {
 			}
 		}
 	case "bump":
-		ui.PrintBanner(Version)
-		fmt.Println("Running version bumper...")
-		cmd := exec.Command("npm", "run", "bump-version")
-		cmd.Stdout = os.Stdout
-		cmd.Stderr = os.Stderr
-		cmd.Stdin = os.Stdin
-		_ = cmd.Run()
-		ui.PressEnterToContinue()
+		git.BumpVersion()
 	case "ai":
 		ui.PrintBanner(Version)
 		fmt.Println(ui.RenderDivider("Gemini AI Assistant", 54))

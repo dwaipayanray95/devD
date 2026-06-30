@@ -510,3 +510,100 @@ func CreateGitHubRelease() {
 	}
 	ui.PressEnterToContinue()
 }
+
+// BumpVersion increments version in package.json natively without external bump-version node module
+func BumpVersion() {
+	ui.PrintBanner(ui.GetProjectInfo())
+	fmt.Println(ui.Accent.Render("  │  Native Version Bumper"))
+	fmt.Println()
+
+	// 1. Read package.json
+	data, err := os.ReadFile("package.json")
+	if err != nil {
+		fmt.Println(ui.Error.Render("✖ Error reading package.json: " + err.Error()))
+		ui.PressEnterToContinue()
+		return
+	}
+
+	var packageMap map[string]interface{}
+	if err := json.Unmarshal(data, &packageMap); err != nil {
+		fmt.Println(ui.Error.Render("✖ Error parsing package.json: " + err.Error()))
+		ui.PressEnterToContinue()
+		return
+	}
+
+	currentVerStr, ok := packageMap["version"].(string)
+	if !ok || currentVerStr == "" {
+		currentVerStr = "1.0.0"
+	}
+
+	fmt.Printf("   Current Version: %s\n\n", ui.Bright.Render(currentVerStr))
+
+	// Parse current version (assuming simple SemVer format)
+	var major, minor, patch int
+	var preRelease string
+	parts := strings.Split(currentVerStr, "-")
+	
+	semVerPart := parts[0]
+	if len(parts) > 1 {
+		preRelease = strings.Join(parts[1:], "-")
+	}
+
+	_, _ = fmt.Sscanf(semVerPart, "%d.%d.%d", &major, &minor, &patch)
+
+	// Offer bump increments
+	choices := []string{
+		fmt.Sprintf("patch      (%d.%d.%d)", major, minor, patch+1),
+		fmt.Sprintf("minor      (%d.%d.0)", major, minor+1),
+		fmt.Sprintf("major      (%d.0.0)", major+1),
+		"custom     (Input manually)",
+		"cancel     (Return)",
+	}
+
+	chosenOption, err := ui.PromptSelect("Select version bump increment:", choices)
+	if err != nil || strings.Contains(chosenOption, "cancel") {
+		return
+	}
+
+	var nextVersion string
+	switch {
+	case strings.HasPrefix(chosenOption, "patch"):
+		nextVersion = fmt.Sprintf("%d.%d.%d", major, minor, patch+1)
+	case strings.HasPrefix(chosenOption, "minor"):
+		nextVersion = fmt.Sprintf("%d.%d.0", major, minor+1)
+	case strings.HasPrefix(chosenOption, "major"):
+		nextVersion = fmt.Sprintf("%d.0.0", major+1)
+	case strings.HasPrefix(chosenOption, "custom"):
+		customVer, err := ui.PromptInput("Enter custom version string:", currentVerStr)
+		if err != nil || customVer == "" {
+			return
+		}
+		nextVersion = customVer
+	}
+
+	if preRelease != "" && !strings.HasPrefix(chosenOption, "custom") {
+		confirmPre, _ := ui.PromptConfirm(fmt.Sprintf("Append pre-release tag '-%s' to new version?", preRelease), true)
+		if confirmPre {
+			nextVersion = fmt.Sprintf("%s-%s", nextVersion, preRelease)
+		}
+	}
+
+	// 2. Update version and write package.json back
+	packageMap["version"] = nextVersion
+	updatedData, err := json.MarshalIndent(packageMap, "", "  ")
+	if err != nil {
+		fmt.Println(ui.Error.Render("✖ Error formatting package.json: " + err.Error()))
+		ui.PressEnterToContinue()
+		return
+	}
+
+	err = os.WriteFile("package.json", updatedData, 0644)
+	if err != nil {
+		fmt.Println(ui.Error.Render("✖ Error writing package.json: " + err.Error()))
+		ui.PressEnterToContinue()
+		return
+	}
+
+	fmt.Printf(ui.Success.Render("\n✔ Successfully bumped version to: %s\n"), nextVersion)
+	ui.PressEnterToContinue()
+}
