@@ -1,17 +1,17 @@
 {
-  "name": "dev-d",
-  "version": "1.1.30",
-  "description": "Developer companion CLI tool for Git & Version Bumping workflow automation.",
-  "type": "module",
   "bin": {
     "devD": "./bin/devd"
   },
+  "description": "Developer companion CLI tool for Git \u0026 Version Bumping workflow automation.",
+  "name": "dev-d",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 0",
-    "bump-version": "bump-version",
     "bump-major": "bump-version major",
     "bump-minor": "bump-version minor",
     "bump-patch": "bump-version patch",
-    "bump-undo": "bump-version undo"
-  }
+    "bump-undo": "bump-version undo",
+    "bump-version": "bump-version",
+    "test": "echo \"Error: no test specified\" \u0026\u0026 exit 0"
+  },
+  "type": "module",
+  "version": "1.1.31"
 }
