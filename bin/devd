@@ -1,24 +1,50 @@
-#!/usr/bin/env bash
-# Zero-overhead shell wrapper to forward execution to the compiled Go binary
-# This file is tracked in Git to satisfy npm's installer validation.
+#!/usr/bin/env node
+import { spawn } from 'child_process';
+import path from 'path';
+import fs from 'fs';
+import { fileURLToPath } from 'url';
+import { dirname } from 'path';
 
-# Resolve symlink recursively to find the real package directory
-TARGET="$0"
-while [ -L "$TARGET" ]; do
-    DIR="$(dirname "$TARGET")"
-    TARGET="$(readlink "$TARGET")"
-    case "$TARGET" in
-        /*) ;;
-        *) TARGET="$DIR/$TARGET" ;;
-    esac
-done
-REAL_DIR="$(dirname "$TARGET")"
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
-# Check if the Go binary exists in the package folder
-if [ ! -f "$REAL_DIR/../devd" ]; then
-    echo "devD Go binary not found. Installing latest version..."
-    node "$REAL_DIR/install-binary.js"
-fi
+const isWindows = process.platform === 'win32';
+const ext = isWindows ? '.exe' : '';
+const targetPath = path.join(__dirname, `../devd${ext}`);
 
-# Run the sibling Go binary
-exec "$REAL_DIR/../devd" "$@"
+// Check if the Go binary exists in the package folder
+if (!fs.existsSync(targetPath)) {
+  console.log('devD binary not found. Running installer...');
+  try {
+    // Run the install script synchronously
+    const installScript = path.join(__dirname, 'install-binary.js');
+    const proc = spawn('node', [installScript], { stdio: 'inherit' });
+    proc.on('close', (code) => {
+      if (code === 0 && fs.existsSync(targetPath)) {
+        runBinary();
+      } else {
+        process.exit(code || 1);
+      }
+    });
+  } catch (err) {
+    console.error('Failed to run binary installer:', err);
+    process.exit(1);
+  }
+} else {
+  runBinary();
+}
+
+function runBinary() {
+  const proc = spawn(targetPath, process.argv.slice(2), {
+    stdio: 'inherit',
+    shell: false
+  });
+
+  proc.on('close', (code) => {
+    process.exit(code);
+  });
+
+  // Handle termination signals gracefully
+  process.on('SIGINT', () => proc.kill('SIGINT'));
+  process.on('SIGTERM', () => proc.kill('SIGTERM'));
+}

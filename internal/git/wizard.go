@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"path/filepath"
 	"strings"
 
 	"github.com/dwaipayanray95/devD/internal/config"
@@ -670,6 +671,34 @@ func BumpVersion() {
 		}
 		updatedData := strings.Join(yamlLines, "\n")
 		err = os.WriteFile("pubspec.yaml", []byte(updatedData), 0644)
+
+		// ALSO: If this is a Flutter project, check if lib/core/app_version.dart exists and update it!
+		appVersionPath := filepath.Join("lib", "core", "app_version.dart")
+		if _, statErr := os.Stat(appVersionPath); statErr == nil {
+			if avData, readErr := os.ReadFile(appVersionPath); readErr == nil {
+				// We strip out the build number (if any) for the app_version.dart clean SemVer representation
+				cleanSemVer := nextVersion
+				if strings.Contains(cleanSemVer, "+") {
+					cleanSemVer = strings.Split(cleanSemVer, "+")[0]
+				}
+				
+				avLines := strings.Split(string(avData), "\n")
+				changed := false
+				for i, avLine := range avLines {
+					if strings.Contains(avLine, "static const String full") {
+						avLines[i] = fmt.Sprintf("  static const String full = '%s';", cleanSemVer)
+						changed = true
+					} else if strings.Contains(avLine, "static const String display") {
+						avLines[i] = fmt.Sprintf("  static const String display = 'v%s';", cleanSemVer)
+						changed = true
+					}
+				}
+				if changed {
+					_ = os.WriteFile(appVersionPath, []byte(strings.Join(avLines, "\n")), 0644)
+					fmt.Printf(ui.Info.Render("   (Also updated version variables in %s)\n"), appVersionPath)
+				}
+			}
+		}
 	}
 
 	if err != nil {
