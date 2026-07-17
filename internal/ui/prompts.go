@@ -59,7 +59,7 @@ func (m SelectModel) View() string {
 
 	for i, choice := range m.Choices {
 		if i == m.Cursor {
-			s.WriteString("   " + Accent.Render("▌") + " " + Bright.Render(choice) + "\n")
+			s.WriteString("   " + Highlight.Render(" "+choice+" ") + "\n")
 		} else {
 			s.WriteString("     " + Muted.Render(choice) + "\n")
 		}

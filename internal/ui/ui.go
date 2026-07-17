@@ -72,19 +72,19 @@ var DarkTheme = ThemePalette{
 }
 
 var LightTheme = ThemePalette{
-	Primary:       "#334155",
+	Primary:       "#1e293b", // dark slate
 	Success:       "#16a34a",
-	Warning:       "#ea580c",
+	Warning:       "#d97706",
 	Error:         "#dc2626",
-	Muted:         "#475569",
+	Muted:         "#64748b",
 	Info:          "#0284c7",
 	Accent:        "#4f46e5",
-	Bright:        "#0f172a",
-	Border:        "#4f46e5",
-	Background:    "#fafaf9",
+	Bright:        "#0f172a", // near black
+	Border:        "#cbd5e1",
+	Background:    "#f8fafc", // off-white
 	Dim:           "#94a3b8",
-	HighlightBg:   "#4f46e5",
-	HighlightFg:   "#ffffff",
+	HighlightBg:   "#e2e8f0", // slate light gray background
+	HighlightFg:   "#0f172a", // near black foreground
 	GradientStart: "#2563eb",
 	GradientEnd:   "#7c3aed",
 }
@@ -101,8 +101,8 @@ var SolarizedTheme = ThemePalette{
 	Border:        "#2aa198",
 	Background:    "#fdf6e3",
 	Dim:           "#839496",
-	HighlightBg:   "#2aa198",
-	HighlightFg:   "#fdf6e3",
+	HighlightBg:   "#eee8d5", // darker solarized base
+	HighlightFg:   "#073642",
 	GradientStart: "#2aa198",
 	GradientEnd:   "#6c71c4",
 }

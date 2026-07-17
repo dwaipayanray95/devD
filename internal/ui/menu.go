@@ -176,8 +176,7 @@ func (m MenuModel) View() string {
 
 	for i, choice := range m.Choices {
 		if i == m.Cursor {
-			// Selected: accent left bar + bright text
-			s.WriteString("   " + Accent.Render("▌") + " " + Accent.Render(choice.Icon) + "  " + Bright.Render(choice.Label) + "\n")
+			s.WriteString("   " + Highlight.Render(" "+choice.Icon+"  "+choice.Label+" ") + "\n")
 		} else {
 			s.WriteString("     " + Dim.Render(choice.Icon) + "  " + Muted.Render(choice.Label) + "\n")
 		}
