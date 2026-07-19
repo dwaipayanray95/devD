@@ -147,14 +147,14 @@ func (m NavigatorModel) View() string {
 
 	// Option 0: Confirm selection of current directory
 	if m.Cursor == 0 {
-		s.WriteString("   " + Accent.Render("▌") + " " + Success.Render("✔") + "  " + Bright.Render("Select this folder ("+filepath.Base(m.CurrentDir)+")") + "\n")
+		s.WriteString("   " + Highlight.Render(" ✔  Select this folder ("+filepath.Base(m.CurrentDir)+") ") + "\n")
 	} else {
 		s.WriteString("     " + Dim.Render("✔") + "  " + Muted.Render("Select this folder ("+filepath.Base(m.CurrentDir)+")") + "\n")
 	}
 
 	// Option 1: .. (Go Up / Go Back)
 	if m.Cursor == 1 {
-		s.WriteString("   " + Accent.Render("▌") + " " + Info.Render("◁") + "  " + Bright.Render(".. (Parent Directory)") + "\n")
+		s.WriteString("   " + Highlight.Render(" ◁  .. (Parent Directory) ") + "\n")
 	} else {
 		s.WriteString("     " + Dim.Render("◁") + "  " + Muted.Render(".. (Parent Directory)") + "\n")
 	}
@@ -164,7 +164,7 @@ func (m NavigatorModel) View() string {
 		idx := i + 2
 		name := entry.Name()
 		if idx == m.Cursor {
-			s.WriteString("   " + Accent.Render("▌") + " " + Accent.Render("▸") + "  " + Bright.Render(name) + "\n")
+			s.WriteString("   " + Highlight.Render(" ▸  "+name+" ") + "\n")
 		} else {
 			s.WriteString("     " + Dim.Render("▸") + "  " + Muted.Render(name) + "\n")
 		}

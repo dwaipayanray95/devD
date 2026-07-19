@@ -79,12 +79,12 @@ var LightTheme = ThemePalette{
 	Muted:         "#64748b",
 	Info:          "#0284c7",
 	Accent:        "#4f46e5",
-	Bright:        "#0f172a", // near black
+	Bright:        "#ffffff", // pure white for commands/inputs
 	Border:        "#cbd5e1",
 	Background:    "#f8fafc", // off-white
 	Dim:           "#94a3b8",
-	HighlightBg:   "#e2e8f0", // slate light gray background
-	HighlightFg:   "#0f172a", // near black foreground
+	HighlightBg:   "#4f46e5", // vibrant indigo background for highlighted select options
+	HighlightFg:   "#ffffff", // pure white foreground
 	GradientStart: "#2563eb",
 	GradientEnd:   "#7c3aed",
 }
@@ -97,12 +97,12 @@ var SolarizedTheme = ThemePalette{
 	Muted:         "#93a1a1",
 	Info:          "#268bd2",
 	Accent:        "#6c71c4",
-	Bright:        "#073642",
+	Bright:        "#ffffff", // pure white for command input visibility
 	Border:        "#2aa198",
 	Background:    "#fdf6e3",
 	Dim:           "#839496",
-	HighlightBg:   "#eee8d5", // darker solarized base
-	HighlightFg:   "#073642",
+	HighlightBg:   "#2aa198", // high-contrast teal background for highlighted selections
+	HighlightFg:   "#fdf6e3", // cream foreground
 	GradientStart: "#2aa198",
 	GradientEnd:   "#6c71c4",
 }
