@@ -79,7 +79,7 @@ var LightTheme = ThemePalette{
 	Muted:         "#64748b",
 	Info:          "#0284c7",
 	Accent:        "#4f46e5",
-	Bright:        "#ffffff", // pure white for commands/inputs
+	Bright:        "#0f172a", // dark grey for visible input text against light background
 	Border:        "#cbd5e1",
 	Background:    "#f8fafc", // off-white
 	Dim:           "#94a3b8",
@@ -97,7 +97,7 @@ var SolarizedTheme = ThemePalette{
 	Muted:         "#93a1a1",
 	Info:          "#268bd2",
 	Accent:        "#6c71c4",
-	Bright:        "#ffffff", // pure white for command input visibility
+	Bright:        "#073642", // dark slate for input visibility on solarized light
 	Border:        "#2aa198",
 	Background:    "#fdf6e3",
 	Dim:           "#839496",
