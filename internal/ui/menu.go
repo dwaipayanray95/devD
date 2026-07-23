@@ -152,7 +152,8 @@ func (m MenuModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		default:
 			m.EscPressed = false
-			if len(msg.String()) == 1 {
+			// Accept any string length (handles terminal emulator paste events)
+			if msg.String() != "" {
 				m.InputBuffer += msg.String()
 			}
 		}

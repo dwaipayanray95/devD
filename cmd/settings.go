@@ -37,7 +37,12 @@ func ShowSettingsMenu() {
 
 		switch {
 		case strings.Contains(chosen, "Update"):
-			RunSelfUpdate()
+			latestTag, err := getLatestGithubTag()
+			if err == nil && latestTag != "" {
+				RunSelfUpdateWithTag(latestTag)
+			} else {
+				RunSelfUpdateWithTag("latest")
+			}
 
 		case strings.Contains(chosen, "Help"):
 			ShowHelpMenu()

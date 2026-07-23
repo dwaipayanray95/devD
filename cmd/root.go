@@ -1,7 +1,9 @@
 package cmd
 
 import (
+	"encoding/json"
 	"fmt"
+	"net/http"
 	"os"
 	"os/exec"
 	"strings"
@@ -83,25 +85,43 @@ func Execute(ver string) {
 	}
 }
 
-func checkAndPromptUpdate() {
-	// Call npm view to get the latest published version of the package.
-	// Since we download via git or npm, we query npm view.
-	cmd := exec.Command("npm", "view", "dev-d", "version")
-	output, err := cmd.Output()
+func getLatestGithubTag() (string, error) {
+	// Call GitHub API to get the latest release tag name of the repo
+	url := "https://api.github.com/repos/dwaipayanray95/devD/releases/latest"
+	resp, err := http.Get(url)
 	if err != nil {
-		return // Silently skip if offline or npm not installed
+		return "", err
 	}
-	latest := strings.TrimSpace(string(output))
-	if latest == "" {
-		return
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return "", fmt.Errorf("GitHub API returned status code %d", resp.StatusCode)
 	}
-	
-	// Simple inequality check. If different from current Version, prompt.
-	if latest != Version {
-		fmt.Printf("\n  %s A new version of devD is available: %s (current: %s)\n", ui.Info.Render("✦"), ui.Success.Render(latest), ui.Muted.Render(Version))
-		confirm, err := ui.PromptConfirm("  Would you like to auto-download and update now?", true)
+
+	var release struct {
+		TagName string `json:"tag_name"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&release); err != nil {
+		return "", err
+	}
+	return strings.TrimSpace(release.TagName), nil
+}
+
+func checkAndPromptUpdate() {
+	latestTag, err := getLatestGithubTag()
+	if err != nil || latestTag == "" {
+		return // Silently skip if offline or failed
+	}
+
+	// Clean 'v' prefix if present to compare semantic version cleanly
+	cleanLatest := strings.TrimPrefix(latestTag, "v")
+	cleanCurrent := strings.TrimPrefix(Version, "v")
+
+	if cleanLatest != cleanCurrent {
+		fmt.Printf("\n  %s A new version of devD is available: %s (current: %s)\n", ui.Info.Render("✦"), ui.Success.Render(latestTag), ui.Muted.Render(Version))
+		confirm, err := ui.PromptConfirm("  Would you like to download and install this release now?", true)
 		if err == nil && confirm {
-			RunSelfUpdate()
+			RunSelfUpdateWithTag(latestTag)
 		}
 	}
 }
@@ -442,7 +462,13 @@ func HandleMenuAction(action string) {
 	case "logs":
 		logger.ManageLogsMenu("")
 	case "update":
-		RunSelfUpdate()
+		latestTag, err := getLatestGithubTag()
+		if err == nil && latestTag != "" {
+			RunSelfUpdateWithTag(latestTag)
+		} else {
+			// fallback to latest branch version if tag fetch failed
+			RunSelfUpdateWithTag("latest")
+		}
 	case "help":
 		ShowHelpMenu()
 	case "restart":
@@ -450,30 +476,31 @@ func HandleMenuAction(action string) {
 	}
 }
 
-func RunSelfUpdate() {
+func RunSelfUpdateWithTag(tag string) {
 	ui.PrintBanner(Version)
 	
-	// Query npm for the latest version to display to the user
-	targetVersion := "latest"
-	vCmd := exec.Command("npm", "view", "dev-d", "version")
-	if output, err := vCmd.Output(); err == nil {
-		if ver := strings.TrimSpace(string(output)); ver != "" {
-			targetVersion = "v" + ver
-		}
+	targetVersion := tag
+	if targetVersion == "latest" {
+		targetVersion = "latest release"
 	}
 
 	fmt.Println(ui.Info.Render("Updating devD CLI to " + targetVersion + "..."))
 	
-	// Production: run npm install -g dwaipayanray95/devD --no-progress
-	fmt.Println(ui.Muted.Render("Executing: npm install -g dwaipayanray95/devD --no-progress"))
-	cmd := exec.Command("npm", "install", "-g", "dwaipayanray95/devD", "--no-progress")
+	// Format the git tag target url for npm installation (e.g. dwaipayanray95/devD#v1.1.38)
+	npmTarget := "dwaipayanray95/devD"
+	if tag != "latest" {
+		npmTarget = fmt.Sprintf("dwaipayanray95/devD#%s", tag)
+	}
+
+	fmt.Printf(ui.Muted.Render("Executing: npm install -g %s --no-progress\n"), npmTarget)
+	cmd := exec.Command("npm", "install", "-g", npmTarget, "--no-progress")
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	cmd.Stdin = os.Stdin
 	err := cmd.Run()
 	if err != nil {
 		fmt.Println(ui.Error.Render("\n✖ Update failed: " + err.Error()))
-		fmt.Println(ui.Warning.Render("If this is a permission error, please run: sudo npm install -g dwaipayanray95/devD"))
+		fmt.Printf(ui.Warning.Render("If this is a permission error, please run: sudo npm install -g %s\n"), npmTarget)
 	} else {
 		fmt.Println(ui.Success.Render("\n✔ devD updated successfully!"))
 		ui.PressEnterToContinue()

@@ -130,7 +130,8 @@ func (m InputModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.Value = string(runes[:len(runes)-1])
 			}
 		default:
-			if len(msg.String()) == 1 {
+			// Accept any string length (handles terminal emulator paste events)
+			if msg.String() != "" {
 				m.Value += msg.String()
 			}
 		}
