@@ -22,7 +22,7 @@ var (
 	Muted       = lipgloss.NewStyle().Foreground(lipgloss.Color("#94a3b8"))
 	Info        = lipgloss.NewStyle().Foreground(lipgloss.Color("#38bdf8"))
 	Accent      = lipgloss.NewStyle().Foreground(lipgloss.Color("#818cf8"))
-	Bright      = lipgloss.NewStyle().Foreground(lipgloss.Color("#ffffff")).Bold(true)
+	Bright      = lipgloss.NewStyle().Bold(true)
 	Dim         = lipgloss.NewStyle().Foreground(lipgloss.Color("#475569"))
 	Highlight   = lipgloss.NewStyle().Background(lipgloss.Color("#312e81")).Foreground(lipgloss.Color("#e0e7ff")).Bold(true)
 	BorderColor = lipgloss.Color("#818cf8")
@@ -61,7 +61,7 @@ var DarkTheme = ThemePalette{
 	Muted:         "#94a3b8",
 	Info:          "#38bdf8",
 	Accent:        "#818cf8",
-	Bright:        "#ffffff",
+	Bright:        "",        // empty string lets terminal decide the standard text color
 	Border:        "#818cf8",
 	Background:    "",
 	Dim:           "#475569",
@@ -79,7 +79,7 @@ var LightTheme = ThemePalette{
 	Muted:         "#64748b",
 	Info:          "#0284c7",
 	Accent:        "#4f46e5",
-	Bright:        "#0f172a", // dark grey for visible input text against light background
+	Bright:        "",        // empty string lets terminal decide the standard text color
 	Border:        "#cbd5e1",
 	Background:    "#f8fafc", // off-white
 	Dim:           "#94a3b8",
@@ -97,7 +97,7 @@ var SolarizedTheme = ThemePalette{
 	Muted:         "#93a1a1",
 	Info:          "#268bd2",
 	Accent:        "#6c71c4",
-	Bright:        "#073642", // dark slate for input visibility on solarized light
+	Bright:        "",        // empty string lets terminal decide the standard text color
 	Border:        "#2aa198",
 	Background:    "#fdf6e3",
 	Dim:           "#839496",
@@ -251,8 +251,13 @@ func InitTheme(themeMode string) {
 		Muted = lipgloss.NewStyle().Foreground(lipgloss.Color(palette.Muted)).Background(bgCol)
 		Info = lipgloss.NewStyle().Foreground(lipgloss.Color(palette.Info)).Background(bgCol)
 		Accent = lipgloss.NewStyle().Foreground(lipgloss.Color(palette.Accent)).Background(bgCol)
-		Bright = lipgloss.NewStyle().Foreground(lipgloss.Color(palette.Bright)).Background(bgCol).Bold(true)
 		Dim = lipgloss.NewStyle().Foreground(lipgloss.Color(palette.Dim)).Background(bgCol)
+		
+		Bright = lipgloss.NewStyle().Background(bgCol).Bold(true)
+		if palette.Bright != "" {
+			Bright = Bright.Foreground(lipgloss.Color(palette.Bright))
+		}
+		
 		Highlight = lipgloss.NewStyle().
 			Background(lipgloss.Color(palette.HighlightBg)).
 			Foreground(lipgloss.Color(palette.HighlightFg)).
@@ -265,8 +270,13 @@ func InitTheme(themeMode string) {
 		Muted = lipgloss.NewStyle().Foreground(lipgloss.Color(palette.Muted))
 		Info = lipgloss.NewStyle().Foreground(lipgloss.Color(palette.Info))
 		Accent = lipgloss.NewStyle().Foreground(lipgloss.Color(palette.Accent))
-		Bright = lipgloss.NewStyle().Foreground(lipgloss.Color(palette.Bright)).Bold(true)
 		Dim = lipgloss.NewStyle().Foreground(lipgloss.Color(palette.Dim))
+		
+		Bright = lipgloss.NewStyle().Bold(true)
+		if palette.Bright != "" {
+			Bright = Bright.Foreground(lipgloss.Color(palette.Bright))
+		}
+		
 		Highlight = lipgloss.NewStyle().
 			Background(lipgloss.Color(palette.HighlightBg)).
 			Foreground(lipgloss.Color(palette.HighlightFg)).

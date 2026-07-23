@@ -204,8 +204,10 @@ func ParseCommand(cmdInput string) string {
 		return "commit"
 	case "sync", "y":
 		return "sync"
-	case "pull":
+	case "pull", "pl":
 		return "pull"
+	case "push", "ps":
+		return "push"
 	case "stash":
 		return "stash"
 	case "stash-pop", "pop":
@@ -244,6 +246,7 @@ func IsGitAction(action string) bool {
 		"commit":         true,
 		"sync":           true,
 		"pull":           true,
+		"push":           true,
 		"stash":          true,
 		"stash-pop":      true,
 		"status":         true,
@@ -292,11 +295,22 @@ func HandleMenuAction(action string) {
 		ui.PressEnterToContinue()
 	case "pull":
 		ui.PrintBanner(Version)
+		fmt.Println("Pulling remote changes...")
 		res := git.Pull()
 		if res.Success {
 			fmt.Println(ui.Success.Render("✔ Pulled remote changes successfully."))
 		} else {
 			fmt.Println(ui.Error.Render("Pull failed: " + res.Stderr))
+		}
+		ui.PressEnterToContinue()
+	case "push":
+		ui.PrintBanner(Version)
+		fmt.Println("Pushing local commits to remote...")
+		res := git.Push()
+		if res.Success {
+			fmt.Println(ui.Success.Render("✔ Pushed local commits successfully."))
+		} else {
+			fmt.Println(ui.Error.Render("Push failed: " + res.Stderr))
 		}
 		ui.PressEnterToContinue()
 	case "stash":
@@ -337,6 +351,8 @@ func HandleMenuAction(action string) {
 				"▣  Create & Push Release Tag",
 				"▶  Create GitHub Release",
 				"◈  Show Repo Status Dashboard",
+				"↑  Push Commits to Remote",
+				"↓  Pull Commits from Remote",
 				"⟳  Sync Repo (Pull & Push)",
 				"▽  Stash Current Changes",
 				"△  Pop Last Stash",
@@ -358,6 +374,10 @@ func HandleMenuAction(action string) {
 				git.CreateGitHubRelease()
 			case strings.Contains(chosen, "Status"):
 				HandleMenuAction("status")
+			case strings.Contains(chosen, "Push Commits"):
+				HandleMenuAction("push")
+			case strings.Contains(chosen, "Pull Commits"):
+				HandleMenuAction("pull")
 			case strings.Contains(chosen, "Sync"):
 				HandleMenuAction("sync")
 			case strings.Contains(chosen, "Stash Current"):

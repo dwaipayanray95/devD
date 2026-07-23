@@ -4,7 +4,6 @@ import (
 	"strings"
 
 	"github.com/atotto/clipboard"
-	"github.com/charmbracelet/lipgloss"
 	tea "github.com/charmbracelet/bubbletea"
 )
 
@@ -196,21 +195,11 @@ func (m MenuModel) View() string {
 	wrappedLines := strings.Split(wrappedInput, "\n")
 	var displayInput strings.Builder
 
-	// Hardcoded fallback colors to absolutely guarantee text is visible regardless of active theme setup
-	textStyle := Bright
-	if AppBg != "" {
-		// If we have an active background set (light mode), render text dark grey
-		textStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("#0f172a")).Bold(true)
-	} else if !lipgloss.HasDarkBackground() {
-		// Fallback for light terminal mode if no theme config loaded
-		textStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("#0f172a")).Bold(true)
-	}
-
 	for idx, line := range wrappedLines {
 		if idx == 0 {
-			displayInput.WriteString("   " + Accent.Render("❯") + " " + textStyle.Render(line))
+			displayInput.WriteString("   " + Accent.Render("❯") + " " + Bright.Render(line))
 		} else {
-			displayInput.WriteString("\n     " + textStyle.Render(line))
+			displayInput.WriteString("\n     " + Bright.Render(line))
 		}
 	}
 	s.WriteString(displayInput.String() + Dim.Render("▏") + "\n\n")
