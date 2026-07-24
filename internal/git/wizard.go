@@ -109,10 +109,18 @@ func RunCommitWizard() {
 	if commitRes.Success {
 		fmt.Println(ui.Success.Render("\n✔ Commit created successfully!"))
 		
-		// Prompt to push online
-		fmt.Println()
-		pushConfirm, err := ui.PromptConfirm("Push commits to remote repository now?", true)
-		if err == nil && pushConfirm {
+		// Read user preference (default: commit only, false)
+		shouldPush := config.GetAutoPushAfterCommit()
+		if !shouldPush {
+			// Prompt user if they want to push now or keep as commit-only
+			fmt.Println()
+			pushConfirm, err := ui.PromptConfirm("Push commits to remote repository now?", false)
+			if err == nil && pushConfirm {
+				shouldPush = true
+			}
+		}
+
+		if shouldPush {
 			// Ask which branch to push to
 			ui.PrintBanner(ui.GetProjectInfo())
 			fmt.Println(ui.Accent.Render("  │  Push Commits Online"))

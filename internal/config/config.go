@@ -7,8 +7,9 @@ import (
 )
 
 type Config struct {
-	GithubToken string `json:"githubToken,omitempty"`
-	Theme       string `json:"theme,omitempty"`
+	GithubToken         string `json:"githubToken,omitempty"`
+	Theme               string `json:"theme,omitempty"`
+	AutoPushAfterCommit *bool  `json:"autoPushAfterCommit,omitempty"`
 }
 
 func getConfigFile() (string, error) {
@@ -85,6 +86,41 @@ func SaveTheme(theme string) bool {
 		_ = json.Unmarshal(data, &conf)
 	}
 	conf.Theme = theme
+	bytes, err := json.MarshalIndent(conf, "", "  ")
+	if err != nil {
+		return false
+	}
+	err = os.WriteFile(file, bytes, 0644)
+	return err == nil
+}
+
+func GetAutoPushAfterCommit() bool {
+	file, err := getConfigFile()
+	if err != nil {
+		return false // Default is false (commit only, do not push)
+	}
+	data, err := os.ReadFile(file)
+	if err != nil {
+		return false
+	}
+	var conf Config
+	if err := json.Unmarshal(data, &conf); err != nil || conf.AutoPushAfterCommit == nil {
+		return false
+	}
+	return *conf.AutoPushAfterCommit
+}
+
+func SaveAutoPushAfterCommit(autoPush bool) bool {
+	file, err := getConfigFile()
+	if err != nil {
+		return false
+	}
+	var conf Config
+	data, err := os.ReadFile(file)
+	if err == nil {
+		_ = json.Unmarshal(data, &conf)
+	}
+	conf.AutoPushAfterCommit = &autoPush
 	bytes, err := json.MarshalIndent(conf, "", "  ")
 	if err != nil {
 		return false
