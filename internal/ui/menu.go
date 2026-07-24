@@ -3,6 +3,7 @@ package ui
 import (
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/atotto/clipboard"
 	tea "github.com/charmbracelet/bubbletea"
@@ -80,12 +81,9 @@ type GitAheadBehindMsg struct {
 	Untracked     int
 }
 
-func (m MenuModel) Init() tea.Cmd {
-	if !m.GitActive || m.GitStatusFn == nil {
-		return nil
-	}
+func checkGitStatusCmd(fn func() (int, int, bool, int, int, int)) tea.Cmd {
 	return func() tea.Msg {
-		ahead, behind, hasUpstream, staged, unstaged, untracked := m.GitStatusFn()
+		ahead, behind, hasUpstream, staged, unstaged, untracked := fn()
 		return GitAheadBehindMsg{
 			Ahead:         ahead,
 			Behind:        behind,
@@ -97,8 +95,35 @@ func (m MenuModel) Init() tea.Cmd {
 	}
 }
 
+func tickGitStatusCmd() tea.Cmd {
+	return tea.Tick(2*time.Second, func(t time.Time) tea.Msg {
+		return tickMsg(t)
+	})
+}
+
+type tickMsg time.Time
+
+func (m MenuModel) Init() tea.Cmd {
+	if !m.GitActive || m.GitStatusFn == nil {
+		return nil
+	}
+	return tea.Batch(
+		checkGitStatusCmd(m.GitStatusFn),
+		tickGitStatusCmd(),
+	)
+}
+
 func (m MenuModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
+	case tickMsg:
+		if m.GitActive && m.GitStatusFn != nil {
+			return m, tea.Batch(
+				checkGitStatusCmd(m.GitStatusFn),
+				tickGitStatusCmd(),
+			)
+		}
+		return m, nil
+
 	case GitAheadBehindMsg:
 		m.AheadCount = msg.Ahead
 		m.BehindCount = msg.Behind
