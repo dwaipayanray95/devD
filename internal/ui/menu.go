@@ -1,6 +1,7 @@
 package ui
 
 import (
+	"fmt"
 	"strings"
 
 	"github.com/atotto/clipboard"
@@ -27,6 +28,10 @@ type MenuModel struct {
 	TextSelected  bool
 	TerminalWidth int
 	CursorIdx     int // Index where new characters are inserted and backspace deletes
+	AheadCount    int
+	BehindCount   int
+	HasUpstream   bool
+	GitStatusFn   func() (int, int, bool)
 }
 
 func NewMenuModel(version string, gitActive bool, themeName string) MenuModel {
@@ -63,12 +68,30 @@ func NewMenuModel(version string, gitActive bool, themeName string) MenuModel {
 	}
 }
 
+type GitAheadBehindMsg struct {
+	Ahead       int
+	Behind      int
+	HasUpstream bool
+}
+
 func (m MenuModel) Init() tea.Cmd {
-	return nil
+	if !m.GitActive || m.GitStatusFn == nil {
+		return nil
+	}
+	return func() tea.Msg {
+		ahead, behind, hasUpstream := m.GitStatusFn()
+		return GitAheadBehindMsg{Ahead: ahead, Behind: behind, HasUpstream: hasUpstream}
+	}
 }
 
 func (m MenuModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
+	case GitAheadBehindMsg:
+		m.AheadCount = msg.Ahead
+		m.BehindCount = msg.Behind
+		m.HasUpstream = msg.HasUpstream
+		return m, nil
+
 	case tea.WindowSizeMsg:
 		m.TerminalWidth = msg.Width
 
@@ -203,6 +226,24 @@ func (m MenuModel) View() string {
 
 	// ── Banner ──────────────────────────────
 	s.WriteString(RenderBanner(m.Version))
+
+	// ── Live Git Sync Status Badge ─────────
+	if m.GitActive && m.HasUpstream {
+		var syncBadge string
+		if m.AheadCount == 0 && m.BehindCount == 0 {
+			syncBadge = Success.Render("  ✓ Synchronized with remote branch  ")
+		} else {
+			var parts []string
+			if m.AheadCount > 0 {
+				parts = append(parts, Accent.Render(fmt.Sprintf("↑ %d ahead", m.AheadCount)))
+			}
+			if m.BehindCount > 0 {
+				parts = append(parts, Warning.Render(fmt.Sprintf("↓ %d behind", m.BehindCount)))
+			}
+			syncBadge = "  " + strings.Join(parts, "  ·  ")
+		}
+		s.WriteString(syncBadge + "\n\n")
+	}
 
 	// ── Menu Section ────────────────────────
 	s.WriteString(RenderDivider("Menu", 54) + "\n\n")

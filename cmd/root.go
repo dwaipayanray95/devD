@@ -131,6 +131,13 @@ func RunMenuLoop() {
 		gitActive := git.IsGitRepository()
 		
 		m := ui.NewMenuModel(Version, gitActive, config.GetTheme())
+		m.GitStatusFn = func() (int, int, bool) {
+			ab, err := git.GetAheadBehind()
+			if err != nil {
+				return 0, 0, false
+			}
+			return ab.Ahead, ab.Behind, ab.HasUpstream
+		}
 		p := tea.NewProgram(m)
 		
 		finalModel, err := p.Run()
@@ -414,14 +421,15 @@ func HandleMenuAction(action string) {
 		fmt.Println()
 		prompt, err := ui.PromptInput("Ask Gemini anything:", "")
 		if err == nil && prompt != "" {
-			fmt.Println("\nThinking...")
-			resp, err := gemini.AskGemini(prompt)
+			resp, err := ui.RunTaskWithSpinner("Querying Gemini AI Model", func() (string, error) {
+				return gemini.AskGemini(prompt)
+			})
 			if err != nil {
-				fmt.Println(ui.Error.Render("Error: " + err.Error()))
+				fmt.Println("\n" + ui.Error.Render("Error: "+err.Error()))
+				ui.PressEnterToContinue()
 			} else {
-				fmt.Println("\n" + ui.Bright.Render("Response:") + "\n" + resp)
+				ui.ShowViewport("Gemini AI Response", resp)
 			}
-			ui.PressEnterToContinue()
 		}
 	case "run-app":
 		ui.PrintBanner(Version)

@@ -399,7 +399,7 @@ func RenderBanner(version string) string {
 	}
 	content.WriteString(dividerLine + "\n")
 
-	// Workspace and Version in columns at the bottom
+	// Workspace, Version and optional Git sync status in columns at the bottom
 	workspaceLabel := " Workspace: "
 	workspaceValue := projectStr
 	versionLabel := "Version: "
