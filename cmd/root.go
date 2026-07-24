@@ -107,17 +107,35 @@ func getLatestGithubTag() (string, error) {
 	return strings.TrimSpace(release.TagName), nil
 }
 
+func isVersionNewer(latest, current string) bool {
+	lParts := strings.Split(strings.TrimPrefix(latest, "v"), ".")
+	cParts := strings.Split(strings.TrimPrefix(current, "v"), ".")
+
+	for i := 0; i < 3; i++ {
+		var lNum, cNum int
+		if i < len(lParts) {
+			fmt.Sscanf(lParts[i], "%d", &lNum)
+		}
+		if i < len(cParts) {
+			fmt.Sscanf(cParts[i], "%d", &cNum)
+		}
+		if lNum > cNum {
+			return true
+		}
+		if lNum < cNum {
+			return false
+		}
+	}
+	return false
+}
+
 func checkAndPromptUpdate() {
 	latestTag, err := getLatestGithubTag()
 	if err != nil || latestTag == "" {
 		return // Silently skip if offline or failed
 	}
 
-	// Clean 'v' prefix if present to compare semantic version cleanly
-	cleanLatest := strings.TrimPrefix(latestTag, "v")
-	cleanCurrent := strings.TrimPrefix(Version, "v")
-
-	if cleanLatest != cleanCurrent {
+	if isVersionNewer(latestTag, Version) {
 		promptMsg := fmt.Sprintf("Download & install release %s (current: %s)?", latestTag, Version)
 		confirm, err := ui.PromptConfirm(promptMsg, true)
 		if err == nil && confirm {
