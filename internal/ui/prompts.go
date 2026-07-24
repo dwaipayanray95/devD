@@ -100,6 +100,7 @@ type InputModel struct {
 	DefaultValue  string
 	Cancelled     bool
 	TerminalWidth int
+	CursorIdx     int // Character index cursor position
 }
 
 func (m InputModel) Init() tea.Cmd {
@@ -124,15 +125,38 @@ func (m InputModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.Value = m.DefaultValue
 			}
 			return m, tea.Quit
-		case "backspace":
-			if len(m.Value) > 0 {
-				runes := []rune(m.Value)
-				m.Value = string(runes[:len(runes)-1])
+		case "left":
+			if m.CursorIdx > 0 {
+				m.CursorIdx--
 			}
+			return m, nil
+
+		case "right":
+			runes := []rune(m.Value)
+			if m.CursorIdx < len(runes) {
+				m.CursorIdx++
+			}
+			return m, nil
+
+		case "backspace":
+			runes := []rune(m.Value)
+			if m.CursorIdx > 0 {
+				m.Value = string(runes[:m.CursorIdx-1]) + string(runes[m.CursorIdx:])
+				m.CursorIdx--
+			}
+
 		default:
+			// Ignore vertical navigation keys in prompt entry
+			keyStr := msg.String()
+			if keyStr == "up" || keyStr == "down" {
+				return m, nil
+			}
 			// Accept any string length (handles terminal emulator paste events)
-			if msg.String() != "" {
-				m.Value += msg.String()
+			if keyStr != "" {
+				runes := []rune(m.Value)
+				insertedRunes := []rune(keyStr)
+				m.Value = string(runes[:m.CursorIdx]) + keyStr + string(runes[m.CursorIdx:])
+				m.CursorIdx += len(insertedRunes)
 			}
 		}
 	}
@@ -159,26 +183,47 @@ func (m InputModel) View() string {
 		wrapWidth = 50 // sensible default
 	}
 
-	wrappedInput := WrapText(displayVal, wrapWidth)
-	wrappedLines := strings.Split(wrappedInput, "\n")
 	var displayInput strings.Builder
-	
-	for idx, line := range wrappedLines {
-		if displayVal == m.DefaultValue {
+
+	if displayVal == m.DefaultValue {
+		wrappedInput := WrapText(displayVal, wrapWidth)
+		wrappedLines := strings.Split(wrappedInput, "\n")
+		for idx, line := range wrappedLines {
 			if idx == 0 {
 				displayInput.WriteString("   " + Accent.Render("❯") + " " + Dim.Render(line))
 			} else {
 				displayInput.WriteString("\n     " + Dim.Render(line))
 			}
-		} else {
+		}
+	} else {
+		// Build string with visual cursor block at cursor index position
+		runes := []rune(m.Value)
+		var cursorBuffer strings.Builder
+		for i := 0; i <= len(runes); i++ {
+			if i == m.CursorIdx {
+				if i < len(runes) {
+					// Cursor is on a character: invert/highlight it
+					cursorBuffer.WriteString(Highlight.Render(string(runes[i])))
+				} else {
+					// Cursor is at the end: draw a block cursor
+					cursorBuffer.WriteString(Highlight.Render(" "))
+				}
+			} else if i < len(runes) {
+				cursorBuffer.WriteString(string(runes[i]))
+			}
+		}
+
+		wrappedInput := WrapText(cursorBuffer.String(), wrapWidth)
+		wrappedLines := strings.Split(wrappedInput, "\n")
+		for idx, line := range wrappedLines {
 			if idx == 0 {
-				displayInput.WriteString("   " + Accent.Render("❯") + " " + Bright.Render(line))
+				displayInput.WriteString("   " + Accent.Render("❯") + " " + line)
 			} else {
-				displayInput.WriteString("\n     " + Bright.Render(line))
+				displayInput.WriteString("\n     " + line)
 			}
 		}
 	}
-	s.WriteString(displayInput.String() + Dim.Render("▏") + "\n")
+	s.WriteString(displayInput.String() + "\n")
 
 	s.WriteString("\n" + Dim.Render("  ────────────────────────────────────────────────────") + "\n")
 	s.WriteString("   " + Muted.Render("enter confirm") + Dim.Render("  ·  ") +

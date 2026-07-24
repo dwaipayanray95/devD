@@ -22,10 +22,11 @@ type MenuModel struct {
 	InputBuffer string
 	EscPressed  bool
 	ChosenValue string
-	ChosenType   string // "menu" or "input"
-	Quitting     bool
-	TextSelected bool
+	ChosenType    string // "menu" or "input"
+	Quitting      bool
+	TextSelected  bool
 	TerminalWidth int
+	CursorIdx     int // Index where new characters are inserted and backspace deletes
 }
 
 func NewMenuModel(version string, gitActive bool, themeName string) MenuModel {
@@ -133,28 +134,59 @@ func (m MenuModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 			return m, tea.Quit
 
-		case "ctrl+w": // Fast backspace - delete word
+		case "left":
 			m.EscPressed = false
-			trimmed := strings.TrimRight(m.InputBuffer, " ")
-			idx := strings.LastIndex(trimmed, " ")
-			if idx >= 0 {
-				m.InputBuffer = trimmed[:idx+1]
-			} else {
-				m.InputBuffer = ""
+			if m.CursorIdx > 0 {
+				m.CursorIdx--
+			}
+			return m, nil
+
+		case "right":
+			m.EscPressed = false
+			runes := []rune(m.InputBuffer)
+			if m.CursorIdx < len(runes) {
+				m.CursorIdx++
+			}
+			return m, nil
+
+		case "ctrl+w": // Fast backspace - delete word before cursor index
+			m.EscPressed = false
+			runes := []rune(m.InputBuffer)
+			if m.CursorIdx > 0 {
+				leftPart := string(runes[:m.CursorIdx])
+				trimmed := strings.TrimRight(leftPart, " ")
+				idx := strings.LastIndex(trimmed, " ")
+				var newLeft []rune
+				if idx >= 0 {
+					newLeft = []rune(trimmed[:idx+1])
+				} else {
+					newLeft = []rune{}
+				}
+				m.InputBuffer = string(newLeft) + string(runes[m.CursorIdx:])
+				m.CursorIdx = len(newLeft)
 			}
 
 		case "backspace":
 			m.EscPressed = false
-			if len(m.InputBuffer) > 0 {
-				runes := []rune(m.InputBuffer)
-				m.InputBuffer = string(runes[:len(runes)-1])
+			runes := []rune(m.InputBuffer)
+			if m.CursorIdx > 0 {
+				m.InputBuffer = string(runes[:m.CursorIdx-1]) + string(runes[m.CursorIdx:])
+				m.CursorIdx--
 			}
 
 		default:
 			m.EscPressed = false
+			keyStr := msg.String()
+			// Ignore vertical navigation keys in text field fallback
+			if keyStr == "up" || keyStr == "down" {
+				return m, nil
+			}
 			// Accept any string length (handles terminal emulator paste events)
-			if msg.String() != "" {
-				m.InputBuffer += msg.String()
+			if keyStr != "" {
+				runes := []rune(m.InputBuffer)
+				insertedRunes := []rune(keyStr)
+				m.InputBuffer = string(runes[:m.CursorIdx]) + keyStr + string(runes[m.CursorIdx:])
+				m.CursorIdx += len(insertedRunes)
 			}
 		}
 	}
@@ -190,7 +222,24 @@ func (m MenuModel) View() string {
 	if wrapWidth < 20 {
 		wrapWidth = 20
 	}
-	wrappedInput := WrapText(m.InputBuffer, wrapWidth)
+	// Build string with visual cursor block at cursor index position
+	runes := []rune(m.InputBuffer)
+	var cursorBuffer strings.Builder
+	for i := 0; i <= len(runes); i++ {
+		if i == m.CursorIdx {
+			if i < len(runes) {
+				// Cursor is on a character: invert/highlight it
+				cursorBuffer.WriteString(Highlight.Render(string(runes[i])))
+			} else {
+				// Cursor is at the end: draw a block cursor
+				cursorBuffer.WriteString(Highlight.Render(" "))
+			}
+		} else if i < len(runes) {
+			cursorBuffer.WriteString(string(runes[i]))
+		}
+	}
+
+	wrappedInput := WrapText(cursorBuffer.String(), wrapWidth)
 	
 	// Add proper indentation to wrapped lines
 	wrappedLines := strings.Split(wrappedInput, "\n")
@@ -198,12 +247,12 @@ func (m MenuModel) View() string {
 
 	for idx, line := range wrappedLines {
 		if idx == 0 {
-			displayInput.WriteString("   " + Accent.Render("❯") + " " + Bright.Render(line))
+			displayInput.WriteString("   " + Accent.Render("❯") + " " + line)
 		} else {
-			displayInput.WriteString("\n     " + Bright.Render(line))
+			displayInput.WriteString("\n     " + line)
 		}
 	}
-	s.WriteString(displayInput.String() + Dim.Render("▏") + "\n\n")
+	s.WriteString(displayInput.String() + "\n\n")
 
 	// ── Footer ──────────────────────────────
 	if m.EscPressed {
