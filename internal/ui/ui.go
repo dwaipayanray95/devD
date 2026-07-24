@@ -79,11 +79,11 @@ var LightTheme = ThemePalette{
 	Muted:         "#64748b",
 	Info:          "#0284c7",
 	Accent:        "#4f46e5",
-	Bright:        "",        // empty string lets terminal decide the standard text color
+	Bright:        "",        // empty string lets terminal decide default foreground
 	Border:        "#cbd5e1",
-	Background:    "#f8fafc", // off-white
+	Background:    "",        // transparent background inherits terminal default
 	Dim:           "#94a3b8",
-	HighlightBg:   "#4f46e5", // vibrant indigo background for highlighted select options
+	HighlightBg:   "#0284c7", // vibrant indigo background for highlighted select options
 	HighlightFg:   "#ffffff", // pure white foreground
 	GradientStart: "#2563eb",
 	GradientEnd:   "#7c3aed",
@@ -97,12 +97,12 @@ var SolarizedTheme = ThemePalette{
 	Muted:         "#93a1a1",
 	Info:          "#268bd2",
 	Accent:        "#6c71c4",
-	Bright:        "",        // empty string lets terminal decide the standard text color
+	Bright:        "",        // empty string lets terminal decide default foreground
 	Border:        "#2aa198",
-	Background:    "#fdf6e3",
-	Dim:           "#839496",
-	HighlightBg:   "#2aa198", // high-contrast teal background for highlighted selections
-	HighlightFg:   "#fdf6e3", // cream foreground
+	Background:    "",        // transparent background inherits terminal default
+	Dim:           "#657b83",
+	HighlightBg:   "#2aa198",
+	HighlightFg:   "#fdf6e3",
 	GradientStart: "#2aa198",
 	GradientEnd:   "#6c71c4",
 }
