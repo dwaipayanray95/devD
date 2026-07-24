@@ -568,8 +568,8 @@ func RunSelfUpdateWithTag(tag string) {
 		npmTarget = fmt.Sprintf("dwaipayanray95/devD#%s", tag)
 	}
 
-	fmt.Printf(ui.Muted.Render("Executing: npm install -g %s --no-progress\n"), npmTarget)
-	cmd := exec.Command("npm", "install", "-g", npmTarget, "--no-progress")
+	fmt.Printf(ui.Muted.Render("Executing: npm install -g %s --no-progress --silent\n"), npmTarget)
+	cmd := exec.Command("npm", "install", "-g", npmTarget, "--no-progress", "--silent")
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	cmd.Stdin = os.Stdin
