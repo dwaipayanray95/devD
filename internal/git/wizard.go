@@ -360,31 +360,38 @@ func CreateGitTag() {
 		return
 	}
 
-	fmt.Println("\nCreating local tag...")
-	var tagRes GitResult
-	if tagMsg != "" {
-		tagRes = RunGitCommand([]string{"tag", "-a", tagName, "-m", tagMsg})
-	} else {
-		tagRes = RunGitCommand([]string{"tag", tagName})
-	}
-
-	if !tagRes.Success {
-		fmt.Println(ui.Error.Render("✖ Failed to create tag: " + tagRes.Stderr))
-		ui.PressEnterToContinue()
-		return
-	}
-	fmt.Println(ui.Success.Render("✔ Local tag created successfully."))
-
-	if confirm {
-		fmt.Println("Pushing tag to remote...")
-		pushRes := RunGitCommand([]string{"push", "origin", tagName})
-		if pushRes.Success {
-			fmt.Println(ui.Success.Render("✔ Tag successfully pushed to origin remote."))
+	resp, err := ui.RunTaskWithSpinner("Creating and Pushing Tag "+tagName, func() (string, error) {
+		var tagRes GitResult
+		if tagMsg != "" {
+			tagRes = RunGitCommand([]string{"tag", "-a", tagName, "-m", tagMsg})
 		} else {
-			fmt.Println(ui.Error.Render("✖ Failed to push tag: " + pushRes.Stderr))
+			tagRes = RunGitCommand([]string{"tag", tagName})
 		}
+
+		if !tagRes.Success {
+			return "", fmt.Errorf("Failed to create tag: %s", tagRes.Stderr)
+		}
+
+		var output strings.Builder
+		output.WriteString(fmt.Sprintf("✔ Local tag %s created successfully.\n", tagName))
+
+		if confirm {
+			pushRes := RunGitCommand([]string{"push", "origin", tagName})
+			if pushRes.Success {
+				output.WriteString(fmt.Sprintf("✔ Tag %s successfully pushed to origin remote.\n", tagName))
+			} else {
+				return output.String(), fmt.Errorf("Failed to push tag to origin: %s", pushRes.Stderr)
+			}
+		}
+		return output.String(), nil
+	})
+
+	if err != nil {
+		fmt.Println("\n" + ui.Error.Render("Error: "+err.Error()))
+		ui.PressEnterToContinue()
+	} else {
+		ui.ShowViewport("Git Tag Results", resp)
 	}
-	ui.PressEnterToContinue()
 }
 
 // ==========================================
@@ -470,54 +477,55 @@ func CreateGitHubRelease() {
 		}
 	}
 
-	fmt.Println("\nCreating GitHub Release...")
-	
-	url := fmt.Sprintf("https://api.github.com/repos/%s/%s/releases", owner, repo)
-	
-	reqBody, _ := json.Marshal(map[string]interface{}{
-		"tag_name":         tagName,
-		"name":             title,
-		"body":             body,
-		"draft":            draft,
-		"prerelease":       prerelease,
-		"target_commitish": "main", // fallback default
+	resStr, err := ui.RunTaskWithSpinner("Publishing GitHub Release "+tagName, func() (string, error) {
+		url := fmt.Sprintf("https://api.github.com/repos/%s/%s/releases", owner, repo)
+		
+		reqBody, _ := json.Marshal(map[string]interface{}{
+			"tag_name":         tagName,
+			"name":             title,
+			"body":             body,
+			"draft":            draft,
+			"prerelease":       prerelease,
+			"target_commitish": "main",
+		})
+
+		req, err := http.NewRequest("POST", url, bytes.NewBuffer(reqBody))
+		if err != nil {
+			return "", fmt.Errorf("Request failed: %w", err)
+		}
+		req.Header.Set("Accept", "application/vnd.github+json")
+		req.Header.Set("Authorization", "Bearer "+token)
+		req.Header.Set("User-Agent", "devD-CLI-Go")
+		req.Header.Set("Content-Type", "application/json")
+
+		client := &http.Client{}
+		resp, err := client.Do(req)
+		if err != nil {
+			return "", fmt.Errorf("Connection failed: %w", err)
+		}
+		defer resp.Body.Close()
+
+		if resp.StatusCode == http.StatusCreated || resp.StatusCode == http.StatusOK {
+			var resData struct {
+				HTMLURL string `json:"html_url"`
+			}
+			_ = json.NewDecoder(resp.Body).Decode(&resData)
+			return fmt.Sprintf("✔ GitHub Release created successfully!\nRelease URL: %s", resData.HTMLURL), nil
+		} else {
+			var errData struct {
+				Message string `json:"message"`
+			}
+			_ = json.NewDecoder(resp.Body).Decode(&errData)
+			return "", fmt.Errorf("Release failed (status %d): %s", resp.StatusCode, errData.Message)
+		}
 	})
 
-	req, err := http.NewRequest("POST", url, bytes.NewBuffer(reqBody))
 	if err != nil {
-		fmt.Println(ui.Error.Render("✖ Request failed: " + err.Error()))
+		fmt.Println("\n" + ui.Error.Render("Error: "+err.Error()))
 		ui.PressEnterToContinue()
-		return
-	}
-	req.Header.Set("Accept", "application/vnd.github+json")
-	req.Header.Set("Authorization", "Bearer "+token)
-	req.Header.Set("User-Agent", "devD-CLI-Go")
-	req.Header.Set("Content-Type", "application/json")
-
-	client := &http.Client{}
-	resp, err := client.Do(req)
-	if err != nil {
-		fmt.Println(ui.Error.Render("✖ Connection failed: " + err.Error()))
-		ui.PressEnterToContinue()
-		return
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode == http.StatusCreated || resp.StatusCode == http.StatusOK {
-		var resData struct {
-			HTMLURL string `json:"html_url"`
-		}
-		_ = json.NewDecoder(resp.Body).Decode(&resData)
-		fmt.Println(ui.Success.Render("\n✔ GitHub Release created successfully!"))
-		fmt.Println(ui.Info.Render("URL: " + resData.HTMLURL))
 	} else {
-		var errData struct {
-			Message string `json:"message"`
-		}
-		_ = json.NewDecoder(resp.Body).Decode(&errData)
-		fmt.Printf(ui.Error.Render("\n✖ Release failed (status %d): %s\n"), resp.StatusCode, errData.Message)
+		ui.ShowViewport("GitHub Release Results", resStr)
 	}
-	ui.PressEnterToContinue()
 }
 
 // BumpVersion increments version in package.json (or pubspec.yaml for Flutter) natively
