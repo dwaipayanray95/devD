@@ -149,12 +149,20 @@ func RunMenuLoop() {
 		gitActive := git.IsGitRepository()
 		
 		m := ui.NewMenuModel(Version, gitActive, config.GetTheme())
-		m.GitStatusFn = func() (int, int, bool) {
-			ab, err := git.GetAheadBehind()
-			if err != nil {
-				return 0, 0, false
+		m.GitStatusFn = func() (int, int, bool, int, int, int) {
+			ab, _ := git.GetAheadBehind()
+			files, _ := git.GetChangedFiles()
+			var staged, unstaged, untracked int
+			for _, f := range files {
+				if f.State == "staged" {
+					staged++
+				} else if f.State == "unstaged" || f.State == "both" {
+					unstaged++
+				} else if f.RawStatus == "??" {
+					untracked++
+				}
 			}
-			return ab.Ahead, ab.Behind, ab.HasUpstream
+			return ab.Ahead, ab.Behind, ab.HasUpstream, staged, unstaged, untracked
 		}
 		p := tea.NewProgram(m)
 		

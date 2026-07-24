@@ -28,10 +28,13 @@ type MenuModel struct {
 	TextSelected  bool
 	TerminalWidth int
 	CursorIdx     int // Index where new characters are inserted and backspace deletes
-	AheadCount    int
-	BehindCount   int
-	HasUpstream   bool
-	GitStatusFn   func() (int, int, bool)
+	AheadCount     int
+	BehindCount    int
+	HasUpstream    bool
+	StagedCount    int
+	UnstagedCount  int
+	UntrackedCount int
+	GitStatusFn    func() (int, int, bool, int, int, int)
 }
 
 func NewMenuModel(version string, gitActive bool, themeName string) MenuModel {
@@ -69,9 +72,12 @@ func NewMenuModel(version string, gitActive bool, themeName string) MenuModel {
 }
 
 type GitAheadBehindMsg struct {
-	Ahead       int
-	Behind      int
-	HasUpstream bool
+	Ahead         int
+	Behind        int
+	HasUpstream   bool
+	StagedCount   int
+	UnstagedCount int
+	Untracked     int
 }
 
 func (m MenuModel) Init() tea.Cmd {
@@ -79,8 +85,15 @@ func (m MenuModel) Init() tea.Cmd {
 		return nil
 	}
 	return func() tea.Msg {
-		ahead, behind, hasUpstream := m.GitStatusFn()
-		return GitAheadBehindMsg{Ahead: ahead, Behind: behind, HasUpstream: hasUpstream}
+		ahead, behind, hasUpstream, staged, unstaged, untracked := m.GitStatusFn()
+		return GitAheadBehindMsg{
+			Ahead:         ahead,
+			Behind:        behind,
+			HasUpstream:   hasUpstream,
+			StagedCount:   staged,
+			UnstagedCount: unstaged,
+			Untracked:     untracked,
+		}
 	}
 }
 
@@ -90,6 +103,9 @@ func (m MenuModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.AheadCount = msg.Ahead
 		m.BehindCount = msg.Behind
 		m.HasUpstream = msg.HasUpstream
+		m.StagedCount = msg.StagedCount
+		m.UnstagedCount = msg.UnstagedCount
+		m.UntrackedCount = msg.Untracked
 		return m, nil
 
 	case tea.WindowSizeMsg:
@@ -227,22 +243,35 @@ func (m MenuModel) View() string {
 	// ── Banner ──────────────────────────────
 	s.WriteString(RenderBanner(m.Version))
 
-	// ── Live Git Sync Status Badge ─────────
-	if m.GitActive && m.HasUpstream {
-		var syncBadge string
-		if m.AheadCount == 0 && m.BehindCount == 0 {
-			syncBadge = Success.Render("  ✓ Synchronized with remote branch  ")
-		} else {
-			var parts []string
-			if m.AheadCount > 0 {
-				parts = append(parts, Accent.Render(fmt.Sprintf("↑ %d ahead", m.AheadCount)))
+	// ── Live Git Sync & Change Status Badge ─────────
+	if m.GitActive {
+		var parts []string
+		if m.HasUpstream {
+			if m.AheadCount == 0 && m.BehindCount == 0 {
+				parts = append(parts, Success.Render("✓ Sync'd"))
+			} else {
+				if m.AheadCount > 0 {
+					parts = append(parts, Accent.Render(fmt.Sprintf("↑ %d ahead", m.AheadCount)))
+				}
+				if m.BehindCount > 0 {
+					parts = append(parts, Warning.Render(fmt.Sprintf("↓ %d behind", m.BehindCount)))
+				}
 			}
-			if m.BehindCount > 0 {
-				parts = append(parts, Warning.Render(fmt.Sprintf("↓ %d behind", m.BehindCount)))
-			}
-			syncBadge = "  " + strings.Join(parts, "  ·  ")
 		}
-		s.WriteString(syncBadge + "\n\n")
+
+		if m.StagedCount > 0 {
+			parts = append(parts, Success.Render(fmt.Sprintf("● %d staged", m.StagedCount)))
+		}
+		if m.UnstagedCount > 0 {
+			parts = append(parts, Warning.Render(fmt.Sprintf("▲ %d modified", m.UnstagedCount)))
+		}
+		if m.UntrackedCount > 0 {
+			parts = append(parts, Muted.Render(fmt.Sprintf("? %d untracked", m.UntrackedCount)))
+		}
+
+		if len(parts) > 0 {
+			s.WriteString("  " + strings.Join(parts, "  ·  ") + "\n\n")
+		}
 	}
 
 	// ── Menu Section ────────────────────────
