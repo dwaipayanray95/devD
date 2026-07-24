@@ -22,9 +22,15 @@ func AskGemini(prompt string) (string, error) {
 	}
 	defer client.Close()
 
+	// Truncate payload to max 8,000 characters to ensure responsive API processing
+	cleanPrompt := prompt
+	if len(cleanPrompt) > 8000 {
+		cleanPrompt = cleanPrompt[:8000] + "\n\n...[Payload truncated for API efficiency]"
+	}
+
 	// Default to gemini-2.5-flash for speed/efficiency
 	model := client.GenerativeModel("gemini-2.5-flash")
-	resp, err := model.GenerateContent(ctx, genai.Text(prompt))
+	resp, err := model.GenerateContent(ctx, genai.Text(cleanPrompt))
 	if err != nil {
 		return "", err
 	}

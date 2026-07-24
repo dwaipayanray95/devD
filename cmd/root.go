@@ -86,9 +86,19 @@ func Execute(ver string) {
 }
 
 func getLatestGithubTag() (string, error) {
-	// Call GitHub API to get the latest release tag name of the repo
 	url := "https://api.github.com/repos/dwaipayanray95/devD/releases/latest"
-	resp, err := http.Get(url)
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		return "", err
+	}
+	req.Header.Set("User-Agent", "devD-CLI-Go")
+	token := config.GetStoredToken()
+	if token != "" {
+		req.Header.Set("Authorization", "Bearer "+token)
+	}
+
+	client := &http.Client{}
+	resp, err := client.Do(req)
 	if err != nil {
 		return "", err
 	}
@@ -194,8 +204,22 @@ func RunMenuLoop() {
 				ui.PrintBanner(Version)
 				fmt.Printf("%s Running shell command: %s\n\n", ui.Info.Render("❯"), ui.Bright.Render(shellInput))
 				
-				// We run via /bin/zsh -c "command" to support aliases/pipes/etc.
-				shellCmd := exec.Command("/bin/zsh", "-c", shellInput)
+				// Dynamically resolve shell for cross-platform execution (zsh, bash, sh, or cmd.exe on Windows)
+				shellPath := os.Getenv("SHELL")
+				var shellCmd *exec.Cmd
+				if os.Getenv("OS") == "Windows_NT" || strings.ToLower(os.Getenv("OS")) == "windows" {
+					shellCmd = exec.Command("cmd.exe", "/c", shellInput)
+				} else {
+					if shellPath == "" {
+						shellPath = "/bin/sh"
+						if _, err := os.Stat("/bin/zsh"); err == nil {
+							shellPath = "/bin/zsh"
+						} else if _, err := os.Stat("/bin/bash"); err == nil {
+							shellPath = "/bin/bash"
+						}
+					}
+					shellCmd = exec.Command(shellPath, "-c", shellInput)
+				}
 				shellCmd.Stdout = os.Stdout
 				shellCmd.Stderr = os.Stderr
 				shellCmd.Stdin = os.Stdin
@@ -265,6 +289,10 @@ func ParseCommand(cmdInput string) string {
 		return "stash"
 	case "stash-pop", "pop":
 		return "stash-pop"
+	case "diff", "d":
+		return "diff"
+	case "stashes":
+		return "stashes"
 	case "bump", "b":
 		return "bump"
 	case "tag", "t":
@@ -302,6 +330,8 @@ func IsGitAction(action string) bool {
 		"push":           true,
 		"stash":          true,
 		"stash-pop":      true,
+		"diff":           true,
+		"stashes":        true,
 		"status":         true,
 		"bump":           true,
 		"tag":            true,
@@ -426,6 +456,49 @@ func HandleMenuAction(action string) {
 			ui.PressEnterToContinue()
 		} else {
 			ui.ShowViewport("Git Stash Pop Results", resp)
+		}
+	case "diff":
+		resp, err := ui.RunTaskWithSpinner("Generating Git Diff View", func() (string, error) {
+			res := git.RunGitCommand([]string{"diff", "HEAD"})
+			if !res.Success {
+				return "", fmt.Errorf("%s", res.Stderr)
+			}
+			if res.Stdout == "" {
+				return "No uncommitted modifications detected in working tree.", nil
+			}
+			return res.Stdout, nil
+		})
+		if err != nil {
+			fmt.Println(ui.Error.Render("Diff failed: " + err.Error()))
+			ui.PressEnterToContinue()
+		} else {
+			ui.ShowViewport("Git Diff Viewer", resp)
+		}
+	case "stashes":
+		stashes, err := git.GetStashes()
+		if err != nil || len(stashes) == 0 {
+			ui.PrintBanner(Version)
+			fmt.Println(ui.Warning.Render("No stashes found in stash stack."))
+			ui.PressEnterToContinue()
+		} else {
+			chosen, err := ui.PromptSelect("Select stash entry to apply:", stashes)
+			if err == nil && chosen != "" {
+				parts := strings.Split(chosen, ":")
+				stashRef := strings.TrimSpace(parts[0])
+				resp, err := ui.RunTaskWithSpinner("Applying Stash "+stashRef, func() (string, error) {
+					res := git.RunGitCommand([]string{"stash", "apply", stashRef})
+					if !res.Success {
+						return "", fmt.Errorf("Stash apply failed: %s", res.Stderr)
+					}
+					return fmt.Sprintf("✔ Successfully applied %s to working directory.", stashRef), nil
+				})
+				if err != nil {
+					fmt.Println(ui.Error.Render("Error: " + err.Error()))
+					ui.PressEnterToContinue()
+				} else {
+					ui.ShowViewport("Stash Apply Results", resp)
+				}
+			}
 		}
 	case "commit":
 		git.RunCommitWizard()

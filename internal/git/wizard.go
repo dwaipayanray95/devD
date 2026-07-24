@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"github.com/dwaipayanray95/devD/internal/config"
+	"github.com/dwaipayanray95/devD/internal/gemini"
 	"github.com/dwaipayanray95/devD/internal/ui"
 )
 
@@ -24,6 +25,7 @@ func RunCommitWizard() {
 
 	// 1. Commit Type
 	types := []string{
+		"ai: Auto-draft conventional commit using Gemini AI (from diff)",
 		"custom: Direct custom message (no type/scope prefix)",
 		"feat: A new feature",
 		"fix: A bug fix",
@@ -41,7 +43,31 @@ func RunCommitWizard() {
 
 	var msg string
 
-	if commitType == "custom" {
+	if commitType == "ai" {
+		diffRes := RunGitCommand([]string{"diff", "--cached"})
+		if !diffRes.Success || diffRes.Stdout == "" {
+			diffRes = RunGitCommand([]string{"diff", "HEAD"})
+		}
+		if !diffRes.Success || diffRes.Stdout == "" {
+			diffRes = RunGitCommand([]string{"status", "--short"})
+		}
+
+		prompt := fmt.Sprintf("Based on the following git diff/changes, generate a single concise Conventional Commit message (e.g. feat(ui): add new button). Do NOT include code blocks, quotes, or conversational text. Output ONLY the commit string:\n\n%s", diffRes.Stdout)
+
+		aiMsg, err := ui.RunTaskWithSpinner("Drafting Commit Message via Gemini AI", func() (string, error) {
+			res, err := gemini.AskGemini(prompt)
+			if err != nil {
+				return "", err
+			}
+			return strings.Trim(strings.TrimSpace(res), "`\""), nil
+		})
+		if err != nil || aiMsg == "" {
+			fmt.Println(ui.Error.Render("\n✖ AI Drafting failed: " + err.Error()))
+			ui.PressEnterToContinue()
+			return
+		}
+		msg = aiMsg
+	} else if commitType == "custom" {
 		// Custom commit option - direct message entry
 		customMsg, err := ui.PromptInput("Enter commit message:", "")
 		if err != nil || customMsg == "" {

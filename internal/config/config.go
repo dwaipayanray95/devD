@@ -18,7 +18,7 @@ func getConfigFile() (string, error) {
 		return "", err
 	}
 	configDir := filepath.Join(home, ".devd")
-	if err := os.MkdirAll(configDir, 0755); err != nil {
+	if err := os.MkdirAll(configDir, 0700); err != nil {
 		return "", err
 	}
 	return filepath.Join(configDir, "config.json"), nil
@@ -55,7 +55,7 @@ func SaveStoredToken(token string) bool {
 	if err != nil {
 		return false
 	}
-	err = os.WriteFile(file, bytes, 0644)
+	err = os.WriteFile(file, bytes, 0600)
 	return err == nil
 }
 

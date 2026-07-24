@@ -96,16 +96,22 @@ func DetectPlatform() *PlatformInfo {
 	}
 
 	// 5. Gradle / Java
-	gradlew := "./gradlew"
-	if fileExists(filepath.Join(cwd, "gradlew.bat")) && os.Getenv("OS") == "Windows_NT" {
-		gradlew = "gradlew.bat"
-	}
-	if fileExists(filepath.Join(cwd, "build.gradle")) {
+	if fileExists(filepath.Join(cwd, "build.gradle")) || fileExists(filepath.Join(cwd, "build.gradle.kts")) {
+		gradlewCmd := "gradle"
+		if os.Getenv("OS") == "Windows_NT" || os.Getenv("OS") == "windows" {
+			if fileExists(filepath.Join(cwd, "gradlew.bat")) {
+				gradlewCmd = "gradlew.bat"
+			}
+		} else {
+			if fileExists(filepath.Join(cwd, "gradlew")) {
+				gradlewCmd = "./gradlew"
+			}
+		}
 		return &PlatformInfo{
 			PlatformName: "Java (Gradle)",
-			RunCommand:   gradlew,
+			RunCommand:   gradlewCmd,
 			RunArgs:      []string{"run"},
-			BuildCommand: gradlew,
+			BuildCommand: gradlewCmd,
 			BuildArgs:    []string{"build"},
 		}
 	}
