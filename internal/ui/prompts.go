@@ -209,7 +209,7 @@ func (m InputModel) View() string {
 					cursorBuffer.WriteString(Highlight.Render(" "))
 				}
 			} else if i < len(runes) {
-				cursorBuffer.WriteString(string(runes[i]))
+				cursorBuffer.WriteString(Bright.Render(string(runes[i])))
 			}
 		}
 
