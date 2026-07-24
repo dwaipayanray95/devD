@@ -77,7 +77,7 @@ func Execute(ver string) {
 	ui.InitTheme(activeTheme)
 
 	// Check for updates on startup
-	go checkAndPromptUpdate()
+	checkAndPromptUpdate()
 
 	if err := RootCmd.Execute(); err != nil {
 		fmt.Println(err)
@@ -118,8 +118,8 @@ func checkAndPromptUpdate() {
 	cleanCurrent := strings.TrimPrefix(Version, "v")
 
 	if cleanLatest != cleanCurrent {
-		fmt.Printf("\n  %s A new version of devD is available: %s (current: %s)\n", ui.Info.Render("✦"), ui.Success.Render(latestTag), ui.Muted.Render(Version))
-		confirm, err := ui.PromptConfirm("  Would you like to download and install this release now?", true)
+		promptMsg := fmt.Sprintf("Download & install release %s (current: %s)?", latestTag, Version)
+		confirm, err := ui.PromptConfirm(promptMsg, true)
 		if err == nil && confirm {
 			RunSelfUpdateWithTag(latestTag)
 		}
