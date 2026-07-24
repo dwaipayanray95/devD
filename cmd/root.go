@@ -317,66 +317,108 @@ func HandleMenuAction(action string) {
 		fmt.Println(ui.Success.Render("\nGoodbye!"))
 		os.Exit(0)
 	case "status":
-		ui.PrintBanner(Version)
-		res := git.RunGitCommand([]string{"status"})
-		fmt.Println(res.Stdout)
-		ui.PressEnterToContinue()
-	case "sync":
-		ui.PrintBanner(Version)
-		fmt.Println(ui.Info.Render("Syncing... pulling remote changes..."))
-		pullRes := git.Pull()
-		if !pullRes.Success {
-			fmt.Println(ui.Error.Render("Pull failed: " + pullRes.Stderr))
+		resp, err := ui.RunTaskWithSpinner("Fetching Git Repository Status", func() (string, error) {
+			res := git.RunGitCommand([]string{"status"})
+			if !res.Success {
+				return "", fmt.Errorf("%s", res.Stderr)
+			}
+			return res.Stdout, nil
+		})
+		if err != nil {
+			fmt.Println(ui.Error.Render("Error: " + err.Error()))
 			ui.PressEnterToContinue()
-			return
-		}
-		fmt.Println(ui.Info.Render("Pushing local changes..."))
-		pushRes := git.Push()
-		if !pushRes.Success {
-			fmt.Println(ui.Error.Render("Push failed: " + pushRes.Stderr))
 		} else {
-			fmt.Println(ui.Success.Render("✔ Repository synchronized successfully."))
+			ui.ShowViewport("Git Repository Status", resp)
 		}
-		ui.PressEnterToContinue()
+	case "sync":
+		resp, err := ui.RunTaskWithSpinner("Synchronizing Repository (Pulling & Pushing)", func() (string, error) {
+			pullRes := git.Pull()
+			if !pullRes.Success {
+				return "", fmt.Errorf("Pull failed: %s", pullRes.Stderr)
+			}
+			pushRes := git.Push()
+			if !pushRes.Success {
+				return "", fmt.Errorf("Push failed: %s", pushRes.Stderr)
+			}
+			var output strings.Builder
+			output.WriteString("✔ Pull rebase successful.\n")
+			output.WriteString("✔ Pushed local commits to remote.\n\n")
+			if pullRes.Stdout != "" {
+				output.WriteString("Pull Log:\n" + pullRes.Stdout + "\n\n")
+			}
+			if pushRes.Stdout != "" {
+				output.WriteString("Push Log:\n" + pushRes.Stdout + "\n")
+			}
+			return output.String(), nil
+		})
+		if err != nil {
+			fmt.Println(ui.Error.Render("Sync failed: " + err.Error()))
+			ui.PressEnterToContinue()
+		} else {
+			ui.ShowViewport("Git Sync Results", resp)
+		}
 	case "pull":
-		ui.PrintBanner(Version)
-		fmt.Println("Pulling remote changes...")
-		res := git.Pull()
-		if res.Success {
-			fmt.Println(ui.Success.Render("✔ Pulled remote changes successfully."))
+		resp, err := ui.RunTaskWithSpinner("Pulling Remote Changes (git pull --rebase)", func() (string, error) {
+			res := git.Pull()
+			if !res.Success {
+				return "", fmt.Errorf("Pull failed: %s", res.Stderr)
+			}
+			if res.Stdout == "" {
+				return "✔ Pulled remote changes successfully.", nil
+			}
+			return res.Stdout, nil
+		})
+		if err != nil {
+			fmt.Println(ui.Error.Render("Pull failed: " + err.Error()))
+			ui.PressEnterToContinue()
 		} else {
-			fmt.Println(ui.Error.Render("Pull failed: " + res.Stderr))
+			ui.ShowViewport("Git Pull Results", resp)
 		}
-		ui.PressEnterToContinue()
 	case "push":
-		ui.PrintBanner(Version)
-		fmt.Println("Pushing local commits to remote...")
-		res := git.Push()
-		if res.Success {
-			fmt.Println(ui.Success.Render("✔ Pushed local commits successfully."))
+		resp, err := ui.RunTaskWithSpinner("Pushing Local Commits to Remote", func() (string, error) {
+			res := git.Push()
+			if !res.Success {
+				return "", fmt.Errorf("Push failed: %s", res.Stderr)
+			}
+			if res.Stdout == "" {
+				return "✔ Pushed local commits to remote successfully.", nil
+			}
+			return res.Stdout, nil
+		})
+		if err != nil {
+			fmt.Println(ui.Error.Render("Push failed: " + err.Error()))
+			ui.PressEnterToContinue()
 		} else {
-			fmt.Println(ui.Error.Render("Push failed: " + res.Stderr))
+			ui.ShowViewport("Git Push Results", resp)
 		}
-		ui.PressEnterToContinue()
 	case "stash":
-		ui.PrintBanner(Version)
-		fmt.Println("Stashing changes...")
-		res := git.StashSave("")
-		if res.Success {
-			fmt.Println(ui.Success.Render("✔ Stashed changes successfully."))
+		resp, err := ui.RunTaskWithSpinner("Stashing Working Modifications", func() (string, error) {
+			res := git.RunGitCommand([]string{"stash"})
+			if !res.Success {
+				return "", fmt.Errorf("Stash failed: %s", res.Stderr)
+			}
+			return res.Stdout, nil
+		})
+		if err != nil {
+			fmt.Println(ui.Error.Render("Stash failed: " + err.Error()))
+			ui.PressEnterToContinue()
 		} else {
-			fmt.Println(ui.Error.Render("Failed: " + res.Stderr))
+			ui.ShowViewport("Git Stash Results", resp)
 		}
-		ui.PressEnterToContinue()
 	case "stash-pop":
-		ui.PrintBanner(Version)
-		res := git.StashPop()
-		if res.Success {
-			fmt.Println(ui.Success.Render("✔ Restored stashed changes."))
+		resp, err := ui.RunTaskWithSpinner("Restoring Stashed Modifications (stash pop)", func() (string, error) {
+			res := git.RunGitCommand([]string{"stash", "pop"})
+			if !res.Success {
+				return "", fmt.Errorf("Stash pop failed: %s", res.Stderr)
+			}
+			return res.Stdout, nil
+		})
+		if err != nil {
+			fmt.Println(ui.Error.Render("Stash pop failed: " + err.Error()))
+			ui.PressEnterToContinue()
 		} else {
-			fmt.Println(ui.Error.Render("Failed: " + res.Stderr))
+			ui.ShowViewport("Git Stash Pop Results", resp)
 		}
-		ui.PressEnterToContinue()
 	case "commit":
 		git.RunCommitWizard()
 	case "branch-manager":
