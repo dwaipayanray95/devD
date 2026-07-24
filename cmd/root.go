@@ -517,22 +517,33 @@ func HandleMenuAction(action string) {
 		_ = cmd.Run()
 		ui.PressEnterToContinue()
 	case "build-app":
-		ui.PrintBanner(Version)
 		pInfo := detector.DetectPlatform()
 		if pInfo == nil {
+			ui.PrintBanner(Version)
 			fmt.Println(ui.Warning.Render("Could not auto-detect any supported platform in this folder."))
 			ui.PressEnterToContinue()
 			return
 		}
-		fmt.Printf(ui.Info.Render("Detected Platform: %s\n"), pInfo.PlatformName)
-		fmt.Printf(ui.Muted.Render("Building: %s %s\n\n"), pInfo.BuildCommand, strings.Join(pInfo.BuildArgs, " "))
 		
-		cmd := exec.Command(pInfo.BuildCommand, pInfo.BuildArgs...)
-		cmd.Stdout = os.Stdout
-		cmd.Stderr = os.Stderr
-		cmd.Stdin = os.Stdin
-		_ = cmd.Run()
-		ui.PressEnterToContinue()
+		taskTitle := fmt.Sprintf("Building %s (%s %s)", pInfo.PlatformName, pInfo.BuildCommand, strings.Join(pInfo.BuildArgs, " "))
+		resp, err := ui.RunTaskWithSpinner(taskTitle, func() (string, error) {
+			cmd := exec.Command(pInfo.BuildCommand, pInfo.BuildArgs...)
+			out, err := cmd.CombinedOutput()
+			if err != nil {
+				return "", fmt.Errorf("Build failed: %w\n%s", err, string(out))
+			}
+			if len(out) == 0 {
+				return "✔ Application built successfully.", nil
+			}
+			return string(out), nil
+		})
+
+		if err != nil {
+			fmt.Println("\n" + ui.Error.Render("Build failed: "+err.Error()))
+			ui.PressEnterToContinue()
+		} else {
+			ui.ShowViewport("Build Output", resp)
+		}
 	case "settings":
 		ShowSettingsMenu()
 	case "logs":

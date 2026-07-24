@@ -61,29 +61,10 @@ func ManageLogsMenu(errorDetail string) {
 
 	case strings.Contains(chosen, "View Logs"):
 		content := GetLastLines(50)
-		ui.PrintBanner(ui.GetProjectInfo())
-		fmt.Println(ui.Accent.Render("  │  View System Logs"))
-		fmt.Println()
-		if content != "" {
-			fmt.Println(content)
-		} else {
-			fmt.Println(ui.Warning.Render("No logs recorded yet."))
+		if content == "" {
+			content = "No logs recorded yet."
 		}
-		fmt.Println()
-
-		subChoices := []string{
-			"📋 Copy logs to clipboard",
-			"↩ Return",
-		}
-		subChosen, err := ui.PromptSelect("Choose action:", subChoices)
-		if err == nil && strings.Contains(subChosen, "Copy") {
-			if copyToClipboard(content) {
-				fmt.Println(ui.Success.Render("\n✔ Logs successfully copied to clipboard!"))
-			} else {
-				fmt.Println(ui.Warning.Render("\n⚠️  Failed to copy logs automatically (ensure clip/xclip/pbcopy is installed)."))
-			}
-			ui.PressEnterToContinue()
-		}
+		ui.ShowViewport("System Logs (Last 50 Lines)", content)
 		ManageLogsMenu(errorDetail)
 
 	case strings.Contains(chosen, "Submit/Report"):
