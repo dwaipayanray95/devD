@@ -54,6 +54,7 @@ func (m SelectModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 func (m SelectModel) View() string {
 	var s strings.Builder
 
+	s.WriteString("\033[H\033[2J\033[3J") // Clear scrollback to prevent top line cut-off
 	s.WriteString(RenderBanner(Version))
 	s.WriteString(RenderDivider(m.Title, 54) + "\n\n")
 
@@ -166,27 +167,22 @@ func (m InputModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 func (m InputModel) View() string {
 	var s strings.Builder
 
+	s.WriteString("\033[H\033[2J\033[3J") // Clear scrollback to prevent top line cut-off
 	s.WriteString(RenderBanner(Version))
-	s.WriteString(RenderDivider(m.Title, 54) + "\n")
-	if m.DefaultValue != "" {
-		s.WriteString("   " + Dim.Render("default: "+m.DefaultValue) + "\n")
-	}
-	s.WriteString("\n")
+	s.WriteString(RenderDivider(m.Title, 54) + "\n\n")
 
-	displayVal := m.Value
-	if displayVal == "" && m.DefaultValue != "" {
-		displayVal = m.DefaultValue
-	}
-
-	wrapWidth := m.TerminalWidth - 7
-	if wrapWidth < 20 {
-		wrapWidth = 50 // sensible default
+	wrapWidth := m.TerminalWidth - 8
+	if wrapWidth < 25 {
+		wrapWidth = 25
 	}
 
 	var displayInput strings.Builder
-
-	if displayVal == m.DefaultValue {
-		wrappedInput := WrapText(displayVal, wrapWidth)
+	if m.Value == "" {
+		placeholder := "Type here..."
+		if m.DefaultValue != "" {
+			placeholder = m.DefaultValue + " (default)"
+		}
+		wrappedInput := WrapText(placeholder, wrapWidth)
 		wrappedLines := strings.Split(wrappedInput, "\n")
 		for idx, line := range wrappedLines {
 			if idx == 0 {
@@ -196,23 +192,19 @@ func (m InputModel) View() string {
 			}
 		}
 	} else {
-		// Build string with visual cursor block at cursor index position
 		runes := []rune(m.Value)
 		var cursorBuffer strings.Builder
 		for i := 0; i <= len(runes); i++ {
 			if i == m.CursorIdx {
 				if i < len(runes) {
-					// Cursor is on a character: invert/highlight it
 					cursorBuffer.WriteString(Highlight.Render(string(runes[i])))
 				} else {
-					// Cursor is at the end: draw a block cursor
 					cursorBuffer.WriteString(Highlight.Render(" "))
 				}
 			} else if i < len(runes) {
 				cursorBuffer.WriteString(Bright.Render(string(runes[i])))
 			}
 		}
-
 		wrappedInput := WrapText(cursorBuffer.String(), wrapWidth)
 		wrappedLines := strings.Split(wrappedInput, "\n")
 		for idx, line := range wrappedLines {
@@ -232,7 +224,6 @@ func (m InputModel) View() string {
 }
 
 func PromptInput(title string, defaultValue string) (string, error) {
-	fmt.Print("\033[H\033[2J") // Clear console screen
 	m := InputModel{
 		Title:         title,
 		DefaultValue:  defaultValue,
@@ -294,6 +285,7 @@ func (m ConfirmModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 func (m ConfirmModel) View() string {
 	var s strings.Builder
 
+	s.WriteString("\033[H\033[2J\033[3J") // Clear scrollback to prevent top line cut-off
 	s.WriteString(RenderBanner(Version))
 	s.WriteString(RenderDivider(m.Title, 54) + "\n\n")
 

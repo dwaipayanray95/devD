@@ -413,6 +413,10 @@ func HandleMenuAction(action string) {
 			ui.ShowViewport("Git Pull Results", resp)
 		}
 	case "push":
+		confirm, err := ui.PromptConfirm("Push local commits to remote origin?", true)
+		if err != nil || !confirm {
+			return
+		}
 		resp, err := ui.RunTaskWithSpinner("Pushing Local Commits to Remote", func() (string, error) {
 			res := git.Push()
 			if !res.Success {

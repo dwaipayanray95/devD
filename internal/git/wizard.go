@@ -133,7 +133,12 @@ func RunCommitWizard() {
 
 	commitRes := Commit(msg)
 	if commitRes.Success {
-		fmt.Println(ui.Success.Render("\n✔ Commit created successfully!"))
+		var output strings.Builder
+		output.WriteString(fmt.Sprintf("✔ Commit Created Successfully!\n\nMessage:\n%s\n", msg))
+		if commitRes.Stdout != "" {
+			output.WriteString("\nGit Summary:\n" + commitRes.Stdout)
+		}
+		ui.ShowViewport("Commit Results", output.String())
 		
 		// Only push if AutoPushAfterCommit preference is explicitly enabled in Settings
 		if config.GetAutoPushAfterCommit() {
