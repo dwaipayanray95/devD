@@ -180,7 +180,7 @@ func RunCommitWizard() {
 				ui.PressEnterToContinue()
 			}
 		} else {
-			ui.PressEnterToContinue()
+			return // Return straight to main menu after quitting Commit Viewport
 		}
 	} else {
 		fmt.Println(ui.Error.Render("\n✖ Commit failed: " + commitRes.Error.Error()))
