@@ -174,7 +174,7 @@ func RunMenuLoop() {
 			}
 			return ab.Ahead, ab.Behind, ab.HasUpstream, staged, unstaged, untracked
 		}
-		p := tea.NewProgram(m)
+		p := tea.NewProgram(m, tea.WithAltScreen())
 		
 		finalModel, err := p.Run()
 		if err != nil {
@@ -417,21 +417,31 @@ func HandleMenuAction(action string) {
 		if err != nil || !confirm {
 			return
 		}
+		// Capture list of local commits being pushed before running push
+		unpushedLog := git.RunGitCommand([]string{"log", "@{u}..HEAD", "--oneline"})
+		
 		resp, err := ui.RunTaskWithSpinner("Pushing Local Commits to Remote", func() (string, error) {
 			res := git.Push()
 			if !res.Success {
 				return "", fmt.Errorf("Push failed: %s", res.Stderr)
 			}
-			if res.Stdout == "" {
-				return "✔ Pushed local commits to remote successfully.", nil
+			
+			var summary strings.Builder
+			summary.WriteString("✔ Commits pushed to remote origin successfully!\n\n")
+			if unpushedLog.Success && unpushedLog.Stdout != "" {
+				summary.WriteString("Pushed Commits:\n" + unpushedLog.Stdout + "\n")
+			} else if res.Stdout != "" {
+				summary.WriteString(res.Stdout)
+			} else {
+				summary.WriteString("All branch commits are up to date.")
 			}
-			return res.Stdout, nil
+			return summary.String(), nil
 		})
 		if err != nil {
 			fmt.Println(ui.Error.Render("Push failed: " + err.Error()))
 			ui.PressEnterToContinue()
 		} else {
-			ui.ShowViewport("Git Push Results", resp)
+			ui.ShowViewport("Git Push Details & Results", resp)
 		}
 	case "stash":
 		resp, err := ui.RunTaskWithSpinner("Stashing Working Modifications", func() (string, error) {

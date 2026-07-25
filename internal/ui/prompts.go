@@ -74,12 +74,11 @@ func (m SelectModel) View() string {
 }
 
 func PromptSelect(title string, choices []string) (string, error) {
-	fmt.Print("\033[H\033[2J") // Clear console screen
 	m := SelectModel{
 		Title:   title,
 		Choices: choices,
 	}
-	p := tea.NewProgram(m)
+	p := tea.NewProgram(m, tea.WithAltScreen())
 	resModel, err := p.Run()
 	if err != nil {
 		return "", err
@@ -229,7 +228,7 @@ func PromptInput(title string, defaultValue string) (string, error) {
 		DefaultValue:  defaultValue,
 		TerminalWidth: 65, // default fallback width
 	}
-	p := tea.NewProgram(m)
+	p := tea.NewProgram(m, tea.WithAltScreen())
 	resModel, err := p.Run()
 	if err != nil {
 		return "", err
@@ -285,7 +284,6 @@ func (m ConfirmModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 func (m ConfirmModel) View() string {
 	var s strings.Builder
 
-	s.WriteString("\033[H\033[2J\033[3J") // Clear scrollback to prevent top line cut-off
 	s.WriteString(RenderBanner(Version))
 	s.WriteString(RenderDivider(m.Title, 54) + "\n\n")
 
@@ -304,13 +302,12 @@ func (m ConfirmModel) View() string {
 }
 
 func PromptConfirm(title string, defaultValue bool) (bool, error) {
-	fmt.Print("\033[H\033[2J") // Clear console screen
 	m := ConfirmModel{
 		Title:        title,
 		DefaultValue: defaultValue,
 		Value:        defaultValue,
 	}
-	p := tea.NewProgram(m)
+	p := tea.NewProgram(m, tea.WithAltScreen())
 	resModel, err := p.Run()
 	if err != nil {
 		return false, err
