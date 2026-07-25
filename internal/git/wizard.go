@@ -135,18 +135,8 @@ func RunCommitWizard() {
 	if commitRes.Success {
 		fmt.Println(ui.Success.Render("\n✔ Commit created successfully!"))
 		
-		// Read user preference (default: commit only, false)
-		shouldPush := config.GetAutoPushAfterCommit()
-		if !shouldPush {
-			// Prompt user if they want to push now or keep as commit-only
-			fmt.Println()
-			pushConfirm, err := ui.PromptConfirm("Push commits to remote repository now?", false)
-			if err == nil && pushConfirm {
-				shouldPush = true
-			}
-		}
-
-		if shouldPush {
+		// Only push if AutoPushAfterCommit preference is explicitly enabled in Settings
+		if config.GetAutoPushAfterCommit() {
 			// Ask which branch to push to
 			ui.PrintBanner(ui.GetProjectInfo())
 			fmt.Println(ui.Accent.Render("  │  Push Commits Online"))
@@ -177,17 +167,20 @@ func RunCommitWizard() {
 						ui.PressEnterToContinue()
 					} else {
 						ui.ShowViewport("Git Push Results", resp)
+						return // Return straight to main menu after quitting Viewport
 					}
 				}
 			} else {
 				fmt.Println(ui.Warning.Render("No branches found to push to."))
 				ui.PressEnterToContinue()
 			}
+		} else {
+			ui.PressEnterToContinue()
 		}
 	} else {
 		fmt.Println(ui.Error.Render("\n✖ Commit failed: " + commitRes.Error.Error()))
+		ui.PressEnterToContinue()
 	}
-	ui.PressEnterToContinue()
 }
 
 // ==========================================
