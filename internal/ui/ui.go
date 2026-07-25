@@ -287,7 +287,7 @@ func GetProjectInfo() string {
 		}
 	}
 
-	// 2. Check pubspec.yaml (Flutter)
+	// 2. Check pubspec.yaml (Flutter / Dart)
 	pubspecPath := filepath.Join(cwd, "pubspec.yaml")
 	if data, err := os.ReadFile(pubspecPath); err == nil {
 		var name, version string
@@ -296,9 +296,11 @@ func GetProjectInfo() string {
 			line = strings.TrimSpace(line)
 			if strings.HasPrefix(line, "name:") {
 				name = strings.TrimSpace(strings.TrimPrefix(line, "name:"))
+				name = strings.Trim(name, "\"'")
 			}
 			if strings.HasPrefix(line, "version:") {
 				version = strings.TrimSpace(strings.TrimPrefix(line, "version:"))
+				version = strings.Trim(version, "\"'")
 			}
 		}
 		if name != "" {
@@ -306,6 +308,142 @@ func GetProjectInfo() string {
 				return fmt.Sprintf("%s v%s", name, version)
 			}
 			return name
+		}
+	}
+
+	// 3. Check Cargo.toml (Rust)
+	cargoPath := filepath.Join(cwd, "Cargo.toml")
+	if data, err := os.ReadFile(cargoPath); err == nil {
+		var name, version string
+		lines := strings.Split(string(data), "\n")
+		inPackageSection := false
+		for _, line := range lines {
+			line = strings.TrimSpace(line)
+			if strings.HasPrefix(line, "[package]") {
+				inPackageSection = true
+				continue
+			}
+			if strings.HasPrefix(line, "[") && line != "[package]" {
+				inPackageSection = false
+			}
+			if inPackageSection {
+				if strings.HasPrefix(line, "name =") || strings.HasPrefix(line, "name=") {
+					parts := strings.SplitN(line, "=", 2)
+					name = strings.Trim(strings.TrimSpace(parts[1]), "\"'")
+				}
+				if strings.HasPrefix(line, "version =") || strings.HasPrefix(line, "version=") {
+					parts := strings.SplitN(line, "=", 2)
+					version = strings.Trim(strings.TrimSpace(parts[1]), "\"'")
+				}
+			}
+		}
+		if name != "" {
+			if version != "" {
+				return fmt.Sprintf("%s v%s", name, version)
+			}
+			return name
+		}
+	}
+
+	// 4. Check pyproject.toml / setup.py / VERSION (Python)
+	pyprojectPath := filepath.Join(cwd, "pyproject.toml")
+	if data, err := os.ReadFile(pyprojectPath); err == nil {
+		var name, version string
+		lines := strings.Split(string(data), "\n")
+		for _, line := range lines {
+			line = strings.TrimSpace(line)
+			if strings.HasPrefix(line, "name =") || strings.HasPrefix(line, "name=") {
+				parts := strings.SplitN(line, "=", 2)
+				name = strings.Trim(strings.TrimSpace(parts[1]), "\"'")
+			}
+			if strings.HasPrefix(line, "version =") || strings.HasPrefix(line, "version=") {
+				parts := strings.SplitN(line, "=", 2)
+				version = strings.Trim(strings.TrimSpace(parts[1]), "\"'")
+			}
+		}
+		if name != "" {
+			if version != "" {
+				return fmt.Sprintf("%s v%s", name, version)
+			}
+			return name
+		}
+	}
+
+	// 5. Check go.mod (Go / Golang)
+	goModPath := filepath.Join(cwd, "go.mod")
+	if data, err := os.ReadFile(goModPath); err == nil {
+		var moduleName string
+		lines := strings.Split(string(data), "\n")
+		for _, line := range lines {
+			line = strings.TrimSpace(line)
+			if strings.HasPrefix(line, "module ") {
+				moduleName = strings.TrimSpace(strings.TrimPrefix(line, "module "))
+				moduleName = filepath.Base(moduleName) // Extract repository name from module URL
+				break
+			}
+		}
+		if moduleName != "" {
+			// Check if VERSION file or git tag exists
+			verPath := filepath.Join(cwd, "VERSION")
+			if verData, err := os.ReadFile(verPath); err == nil {
+				ver := strings.TrimSpace(string(verData))
+				if ver != "" {
+					return fmt.Sprintf("%s v%s", moduleName, strings.TrimPrefix(ver, "v"))
+				}
+			}
+			return fmt.Sprintf("%s (go)", moduleName)
+		}
+	}
+
+	// 6. Check pom.xml (Java / Maven)
+	pomPath := filepath.Join(cwd, "pom.xml")
+	if data, err := os.ReadFile(pomPath); err == nil {
+		var artifactId, version string
+		lines := strings.Split(string(data), "\n")
+		for _, line := range lines {
+			line = strings.TrimSpace(line)
+			if strings.HasPrefix(line, "<artifactId>") && artifactId == "" {
+				artifactId = strings.TrimSuffix(strings.TrimPrefix(line, "<artifactId>"), "</artifactId>")
+			}
+			if strings.HasPrefix(line, "<version>") && version == "" {
+				version = strings.TrimSuffix(strings.TrimPrefix(line, "<version>"), "</version>")
+			}
+		}
+		if artifactId != "" {
+			if version != "" {
+				return fmt.Sprintf("%s v%s", artifactId, version)
+			}
+			return artifactId
+		}
+	}
+
+	// 7. Check build.gradle / build.gradle.kts (Gradle / Android)
+	for _, gFile := range []string{"build.gradle", "build.gradle.kts", "app/build.gradle", "app/build.gradle.kts"} {
+		gPath := filepath.Join(cwd, gFile)
+		if data, err := os.ReadFile(gPath); err == nil {
+			var versionName string
+			lines := strings.Split(string(data), "\n")
+			for _, line := range lines {
+				line = strings.TrimSpace(line)
+				if strings.Contains(line, "versionName") {
+					parts := strings.Split(line, "versionName")
+					if len(parts) > 1 {
+						versionName = strings.Trim(strings.TrimSpace(parts[1]), "\"':= ")
+					}
+				}
+			}
+			if versionName != "" {
+				return fmt.Sprintf("%s v%s", folderName, versionName)
+			}
+		}
+	}
+
+	// 8. Check standalone VERSION file
+	verPath := filepath.Join(cwd, "VERSION")
+	if data, err := os.ReadFile(verPath); err == nil {
+		ver := strings.TrimSpace(string(data))
+		if ver != "" {
+			return fmt.Sprintf("%s v%s", folderName, strings.TrimPrefix(ver, "v"))
 		}
 	}
 

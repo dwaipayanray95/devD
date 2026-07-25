@@ -50,6 +50,7 @@ All colors and styles are defined in `internal/ui/ui.go` as Lip Gloss styles:
 ### Key Features & Input Handlers
 - **Inline Cursor Navigation**: `MenuModel` and `InputModel` maintain a `CursorIdx` rune pointer. Users navigate `←` / `→` arrow keys inside prompts to insert or delete characters anywhere within a string.
 - **Any-Length Input & Clipboard**: Key handlers process multi-character string input buffers to seamlessly support system clipboard paste events (`Cmd+V`, `Ctrl+V`, terminal right-click).
+- **Multi-Ecosystem Version Discovery**: `ui.GetProjectInfo()` automatically parses manifests across Node (`package.json`), Flutter (`pubspec.yaml`), Rust (`Cargo.toml`), Python (`pyproject.toml`), Go (`go.mod`/`VERSION`), Java (`pom.xml`), Gradle/Android (`build.gradle`/`kts`), and standalone `VERSION` files.
 - **Dual-Platform Version Bumping**: `git.BumpVersion()` automatically senses if `pubspec.yaml` or `package.json` exists. For Flutter projects, it updates `pubspec.yaml` (including build numbers `+N`) and syncs `lib/core/app_version.dart`.
 - **GitHub Tag-Based Self-Updates**: `getLatestGithubTag()` queries GitHub's `/releases/latest` REST endpoint. Background checks alert users to update, executing `npm install -g dwaipayanray95/devD#vX.Y.Z`.
 

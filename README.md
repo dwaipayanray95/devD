@@ -22,9 +22,8 @@
 - **Interactive TUI & Full Keyboard Controls**: Built on Charm's Bubble Tea and Lip Gloss for ultra-smooth rendering.
 - **Inline Cursor Navigation & Editing**: Real-time block cursor positioning in all text input fields using `←` / `→` arrow keys, with mid-string character insertion and word deletion (`Ctrl+W`).
 - **Cross-Platform System Clipboard Integration**: Full support for copying, cutting, and pasting (`Ctrl+V`, `Cmd+V`, or terminal right-click paste) on macOS, Windows, and Linux.
-- **Native Dual-Platform Version Bumper**: Automatically detects project types and bumps version numbers across:
-  - **Web/Node**: `package.json`
-  - **Flutter**: `pubspec.yaml` (handles `+build_number` increments) and syncs `lib/core/app_version.dart`
+- **Multi-Ecosystem Version Discovery**: Automatically parses and displays project versions in the header banner for Node (`package.json`), Flutter (`pubspec.yaml`), Rust (`Cargo.toml`), Python (`pyproject.toml`), Go (`go.mod`/`VERSION`), Java (`pom.xml`), Gradle/Android (`build.gradle`/`kts`), and standalone `VERSION` files.
+- **Native Version Bumper**: Automatically detects project types and bumps version numbers across Node (`package.json`) and Flutter (`pubspec.yaml` with build numbers `+N`, syncing `lib/core/app_version.dart`).
 - **Smart Git Push & Pull Controls**: Dedicated push (`push` / `ps`), pull (`pull` / `pl`), and sync (`sync` / `y`) actions with remote branch selection.
 - **Tag-Based GitHub Self-Updates**: Background release checks against official GitHub Release Tags with one-click silent installer updating.
 - **Theme Auto-Adaptation**: Clean support for **Dark**, **Light**, and **Solarized** terminal palettes with automatic text contrast management.
