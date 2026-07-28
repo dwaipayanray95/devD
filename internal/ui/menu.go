@@ -43,6 +43,7 @@ func NewMenuModel(version string, gitActive bool, themeName string) MenuModel {
 	if gitActive {
 		choices = []MenuItem{
 			{Icon: "◆", Label: "Git Controls", Value: "git-controls"},
+			{Icon: "📶", Label: "Android & ADB Debug Suite", Value: "adb"},
 			{Icon: "▶", Label: "Run App (Auto-Detect)", Value: "run-app"},
 			{Icon: "◼", Label: "Build App (Auto-Detect)", Value: "build-app"},
 			{Icon: "▲", Label: "Bump Version", Value: "bump"},
@@ -52,6 +53,7 @@ func NewMenuModel(version string, gitActive bool, themeName string) MenuModel {
 		}
 	} else {
 		choices = []MenuItem{
+			{Icon: "📶", Label: "Android & ADB Debug Suite", Value: "adb"},
 			{Icon: "▶", Label: "Run App (Auto-Detect)", Value: "run-app"},
 			{Icon: "◼", Label: "Build App (Auto-Detect)", Value: "build-app"},
 			{Icon: "◇", Label: "Ask Gemini / AI Query", Value: "ai"},

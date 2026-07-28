@@ -11,6 +11,7 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/spf13/cobra"
 
+	"github.com/dwaipayanray95/devD/internal/adb"
 	"github.com/dwaipayanray95/devD/internal/config"
 	"github.com/dwaipayanray95/devD/internal/detector"
 	"github.com/dwaipayanray95/devD/internal/gemini"
@@ -301,6 +302,8 @@ func ParseCommand(cmdInput string) string {
 		return "release"
 	case "ai", "a", "gemini":
 		return "ai"
+	case "adb", "android":
+		return "adb"
 	case "update", "u":
 		return "update"
 	case "help", "h", "?":
@@ -631,6 +634,8 @@ func HandleMenuAction(action string) {
 		} else {
 			ui.ShowViewport("Build Output", resp)
 		}
+	case "adb":
+		adb.ShowADBMenu()
 	case "settings":
 		ShowSettingsMenu()
 	case "logs":
