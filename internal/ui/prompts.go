@@ -12,11 +12,12 @@ import (
 // ==========================================
 
 type SelectModel struct {
-	Title     string
-	Choices   []string
-	Cursor    int
-	Chosen    string
-	Cancelled bool
+	Title         string
+	Choices       []string
+	Cursor        int
+	Chosen        string
+	Cancelled     bool
+	TerminalWidth int
 }
 
 func (m SelectModel) Init() tea.Cmd {
@@ -25,6 +26,9 @@ func (m SelectModel) Init() tea.Cmd {
 
 func (m SelectModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
+	case tea.WindowSizeMsg:
+		m.TerminalWidth = msg.Width
+
 	case tea.KeyMsg:
 		switch msg.String() {
 		case "ctrl+c":
@@ -58,11 +62,31 @@ func (m SelectModel) View() string {
 	s.WriteString(RenderBanner(Version))
 	s.WriteString(RenderDivider(m.Title, 54) + "\n\n")
 
+	wrapWidth := m.TerminalWidth - 10
+	if wrapWidth < 20 {
+		wrapWidth = 50 // sensible fallback
+	}
+
 	for i, choice := range m.Choices {
+		wrappedChoice := WrapText(choice, wrapWidth)
+		lines := strings.Split(wrappedChoice, "\n")
+		
 		if i == m.Cursor {
-			s.WriteString("   " + Highlight.Render(" "+choice+" ") + "\n")
+			for idx, line := range lines {
+				if idx == 0 {
+					s.WriteString("   " + Highlight.Render(" "+line+" ") + "\n")
+				} else {
+					s.WriteString("     " + Highlight.Render(" "+line+" ") + "\n")
+				}
+			}
 		} else {
-			s.WriteString("     " + Muted.Render(choice) + "\n")
+			for idx, line := range lines {
+				if idx == 0 {
+					s.WriteString("     " + Muted.Render(line) + "\n")
+				} else {
+					s.WriteString("       " + Muted.Render(line) + "\n")
+				}
+			}
 		}
 	}
 

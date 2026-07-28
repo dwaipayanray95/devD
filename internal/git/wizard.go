@@ -392,22 +392,37 @@ func CreateGitTag() {
 	}
 
 	resp, err := ui.RunTaskWithSpinner("Creating and Pushing Tag "+tagName, func() (string, error) {
-		var tagRes GitResult
-		if tagMsg != "" {
-			tagRes = RunGitCommand([]string{"tag", "-a", tagName, "-m", tagMsg})
+		// Check if local tag already exists
+		checkTag := RunGitCommand([]string{"tag", "-l", tagName})
+		if checkTag.Success && strings.TrimSpace(checkTag.Stdout) == tagName {
+			// Overwrite existing local tag with -f / --force
+			var tagRes GitResult
+			if tagMsg != "" {
+				tagRes = RunGitCommand([]string{"tag", "-f", "-a", tagName, "-m", tagMsg})
+			} else {
+				tagRes = RunGitCommand([]string{"tag", "-f", tagName})
+			}
+			if !tagRes.Success {
+				return "", fmt.Errorf("Failed to update local tag: %s", tagRes.Stderr)
+			}
 		} else {
-			tagRes = RunGitCommand([]string{"tag", tagName})
-		}
+			var tagRes GitResult
+			if tagMsg != "" {
+				tagRes = RunGitCommand([]string{"tag", "-a", tagName, "-m", tagMsg})
+			} else {
+				tagRes = RunGitCommand([]string{"tag", tagName})
+			}
 
-		if !tagRes.Success {
-			return "", fmt.Errorf("Failed to create tag: %s", tagRes.Stderr)
+			if !tagRes.Success {
+				return "", fmt.Errorf("Failed to create tag: %s", tagRes.Stderr)
+			}
 		}
 
 		var output strings.Builder
-		output.WriteString(fmt.Sprintf("✔ Local tag %s created successfully.\n", tagName))
+		output.WriteString(fmt.Sprintf("✔ Local tag %s set successfully.\n", tagName))
 
 		if confirm {
-			pushRes := RunGitCommand([]string{"push", "origin", tagName})
+			pushRes := RunGitCommand([]string{"push", "origin", tagName, "--force"})
 			if pushRes.Success {
 				output.WriteString(fmt.Sprintf("✔ Tag %s successfully pushed to origin remote.\n", tagName))
 			} else {
