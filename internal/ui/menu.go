@@ -43,7 +43,7 @@ func NewMenuModel(version string, gitActive bool, themeName string) MenuModel {
 	if gitActive {
 		choices = []MenuItem{
 			{Icon: "◆", Label: "Git Controls", Value: "git-controls"},
-			{Icon: "📶", Label: "Android & ADB Debug Suite", Value: "adb"},
+			{Icon: "◈", Label: "Android & ADB Debug Suite", Value: "adb"},
 			{Icon: "▶", Label: "Run App (Auto-Detect)", Value: "run-app"},
 			{Icon: "◼", Label: "Build App (Auto-Detect)", Value: "build-app"},
 			{Icon: "▲", Label: "Bump Version", Value: "bump"},
@@ -53,7 +53,7 @@ func NewMenuModel(version string, gitActive bool, themeName string) MenuModel {
 		}
 	} else {
 		choices = []MenuItem{
-			{Icon: "📶", Label: "Android & ADB Debug Suite", Value: "adb"},
+			{Icon: "◈", Label: "Android & ADB Debug Suite", Value: "adb"},
 			{Icon: "▶", Label: "Run App (Auto-Detect)", Value: "run-app"},
 			{Icon: "◼", Label: "Build App (Auto-Detect)", Value: "build-app"},
 			{Icon: "◇", Label: "Ask Gemini / AI Query", Value: "ai"},
@@ -247,7 +247,15 @@ func (m MenuModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			if keyStr == "up" || keyStr == "down" {
 				return m, nil
 			}
-			// Accept any string length (handles terminal emulator paste events)
+			// Strip bracketed paste mode ANSI escape sequences (\x1b[200~ and \x1b[201~ or literal "[~")
+			keyStr = strings.ReplaceAll(keyStr, "\x1b[200~", "")
+			keyStr = strings.ReplaceAll(keyStr, "\x1b[201~", "")
+			keyStr = strings.ReplaceAll(keyStr, "[200~", "")
+			keyStr = strings.ReplaceAll(keyStr, "[201~", "")
+			keyStr = strings.ReplaceAll(keyStr, "200~", "")
+			keyStr = strings.ReplaceAll(keyStr, "201~", "")
+
+			// Accept clean string input
 			if keyStr != "" {
 				runes := []rune(m.InputBuffer)
 				insertedRunes := []rune(keyStr)

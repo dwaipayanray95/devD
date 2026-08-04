@@ -65,6 +65,20 @@ func ManageLogsMenu(errorDetail string) {
 			content = "No logs recorded yet."
 		}
 		ui.ShowViewport("System Logs (Last 50 Lines)", content)
+
+		subChoices := []string{
+			"📋 Copy system logs to clipboard",
+			"↩ Return to log menu",
+		}
+		subChosen, err := ui.PromptSelect("Log viewer action:", subChoices)
+		if err == nil && strings.Contains(subChosen, "Copy") {
+			if copyToClipboard(content) {
+				fmt.Println(ui.Success.Render("\n✔ System logs copied to clipboard successfully!"))
+			} else {
+				fmt.Println(ui.Warning.Render("\n⚠️ Could not copy logs automatically."))
+			}
+			ui.PressEnterToContinue()
+		}
 		ManageLogsMenu(errorDetail)
 
 	case strings.Contains(chosen, "Submit/Report"):
