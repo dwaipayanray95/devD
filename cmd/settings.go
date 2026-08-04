@@ -69,15 +69,15 @@ func ShowPreferencesMenu() {
 		fmt.Println(ui.RenderDivider("Preferences", 54))
 		fmt.Println()
 
-		autoPushStatus := "Disabled (Commit Only - Default)"
+		autoPushStatus := "Disabled - Commit Only (Default)"
 		if config.GetAutoPushAfterCommit() {
-			autoPushStatus = "Enabled (Auto Push After Commit)"
+			autoPushStatus = "Enabled - Auto Push After Commit"
 		}
 
 		choices := []string{
 			"◆  Configure GitHub Token",
 			"◇  Toggle Theme (Dark / Light / System)",
-			"▲  Auto-Push After Commit: [" + autoPushStatus + "]",
+			"▲  Auto-Push After Commit: (" + autoPushStatus + ")",
 			"◁  Back to settings menu",
 		}
 

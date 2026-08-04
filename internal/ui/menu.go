@@ -142,8 +142,11 @@ func (m MenuModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		switch msg.String() {
 		case "ctrl+v":
 			m.EscPressed = false
-			if text, err := clipboard.ReadAll(); err == nil {
-				m.InputBuffer += text
+			if text, err := clipboard.ReadAll(); err == nil && text != "" {
+				runes := []rune(m.InputBuffer)
+				insertedRunes := []rune(text)
+				m.InputBuffer = string(runes[:m.CursorIdx]) + text + string(runes[m.CursorIdx:])
+				m.CursorIdx += len(insertedRunes)
 			}
 
 		case "ctrl+a":
@@ -247,13 +250,17 @@ func (m MenuModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			if keyStr == "up" || keyStr == "down" {
 				return m, nil
 			}
-			// Strip bracketed paste mode ANSI escape sequences (\x1b[200~ and \x1b[201~ or literal "[~")
+			// Strip bracketed paste control codes (\x1b[200~, \x1b[201~, [200~, [201~, 200~, 201~, and raw brackets if surrounded by paste sequences)
 			keyStr = strings.ReplaceAll(keyStr, "\x1b[200~", "")
 			keyStr = strings.ReplaceAll(keyStr, "\x1b[201~", "")
+			keyStr = strings.ReplaceAll(keyStr, "\x1b[", "")
 			keyStr = strings.ReplaceAll(keyStr, "[200~", "")
 			keyStr = strings.ReplaceAll(keyStr, "[201~", "")
 			keyStr = strings.ReplaceAll(keyStr, "200~", "")
 			keyStr = strings.ReplaceAll(keyStr, "201~", "")
+			keyStr = strings.TrimPrefix(keyStr, "[")
+			keyStr = strings.TrimSuffix(keyStr, "]")
+			keyStr = strings.TrimSuffix(keyStr, "~")
 
 			// Accept clean string input
 			if keyStr != "" {
