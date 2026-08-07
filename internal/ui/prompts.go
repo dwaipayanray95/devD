@@ -188,6 +188,7 @@ func (m InputModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			if keyStr == "up" || keyStr == "down" {
 				return m, nil
 			}
+			
 			// Strip bracketed paste control codes (\x1b[200~, \x1b[201~, [200~, [201~, 200~, 201~)
 			keyStr = strings.ReplaceAll(keyStr, "\x1b[200~", "")
 			keyStr = strings.ReplaceAll(keyStr, "\x1b[201~", "")
@@ -196,6 +197,11 @@ func (m InputModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			keyStr = strings.ReplaceAll(keyStr, "[201~", "")
 			keyStr = strings.ReplaceAll(keyStr, "200~", "")
 			keyStr = strings.ReplaceAll(keyStr, "201~", "")
+
+			// Strip raw leading [ and trailing ] from bracketed paste mode
+			if strings.HasPrefix(keyStr, "[") && strings.HasSuffix(keyStr, "]") && len(keyStr) > 2 {
+				keyStr = keyStr[1 : len(keyStr)-1]
+			}
 			
 			// Flatten newlines from multiline clipboard pastes into clean spaces
 			keyStr = strings.ReplaceAll(keyStr, "\r\n", " ")
@@ -288,7 +294,11 @@ func PromptInput(title string, defaultValue string) (string, error) {
 	if finalModel.Cancelled {
 		return "", fmt.Errorf("ESCAPE_CANCELLED")
 	}
-	return strings.TrimSpace(finalModel.Value), nil
+	val := strings.TrimSpace(finalModel.Value)
+	if strings.HasPrefix(val, "[") && strings.HasSuffix(val, "]") && len(val) > 2 {
+		val = val[1 : len(val)-1]
+	}
+	return strings.TrimSpace(val), nil
 }
 
 // ==========================================
