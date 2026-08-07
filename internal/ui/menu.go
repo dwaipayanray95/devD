@@ -143,9 +143,12 @@ func (m MenuModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case "ctrl+v":
 			m.EscPressed = false
 			if text, err := clipboard.ReadAll(); err == nil && text != "" {
+				cleanText := strings.ReplaceAll(text, "\r\n", " ")
+				cleanText = strings.ReplaceAll(cleanText, "\n", " ")
+				cleanText = strings.ReplaceAll(cleanText, "\r", " ")
 				runes := []rune(m.InputBuffer)
-				insertedRunes := []rune(text)
-				m.InputBuffer = string(runes[:m.CursorIdx]) + text + string(runes[m.CursorIdx:])
+				insertedRunes := []rune(cleanText)
+				m.InputBuffer = string(runes[:m.CursorIdx]) + cleanText + string(runes[m.CursorIdx:])
 				m.CursorIdx += len(insertedRunes)
 			}
 
@@ -250,7 +253,7 @@ func (m MenuModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			if keyStr == "up" || keyStr == "down" {
 				return m, nil
 			}
-			// Strip bracketed paste control codes (\x1b[200~, \x1b[201~, [200~, [201~, 200~, 201~, and raw brackets if surrounded by paste sequences)
+			// Strip bracketed paste control codes (\x1b[200~, \x1b[201~, [200~, [201~, 200~, 201~)
 			keyStr = strings.ReplaceAll(keyStr, "\x1b[200~", "")
 			keyStr = strings.ReplaceAll(keyStr, "\x1b[201~", "")
 			keyStr = strings.ReplaceAll(keyStr, "\x1b[", "")
@@ -258,9 +261,11 @@ func (m MenuModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			keyStr = strings.ReplaceAll(keyStr, "[201~", "")
 			keyStr = strings.ReplaceAll(keyStr, "200~", "")
 			keyStr = strings.ReplaceAll(keyStr, "201~", "")
-			keyStr = strings.TrimPrefix(keyStr, "[")
-			keyStr = strings.TrimSuffix(keyStr, "]")
-			keyStr = strings.TrimSuffix(keyStr, "~")
+
+			// Flatten newlines from multiline clipboard pastes into clean spaces
+			keyStr = strings.ReplaceAll(keyStr, "\r\n", " ")
+			keyStr = strings.ReplaceAll(keyStr, "\n", " ")
+			keyStr = strings.ReplaceAll(keyStr, "\r", " ")
 
 			// Accept clean string input
 			if keyStr != "" {
