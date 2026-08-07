@@ -25,7 +25,6 @@ func RunCommitWizard() {
 
 	// 1. Commit Type
 	types := []string{
-		"ai: Auto-draft conventional commit using Gemini AI (from diff)",
 		"custom: Direct custom message (no type/scope prefix)",
 		"feat: A new feature",
 		"fix: A bug fix",
@@ -34,6 +33,7 @@ func RunCommitWizard() {
 		"refactor: Refactoring code",
 		"perf: Performance improvement",
 		"chore: Tooling/auxiliary changes",
+		"ai: Auto-draft conventional commit using Gemini AI (from diff)",
 	}
 	chosenType, err := ui.PromptSelect("Select commit type:", types)
 	if err != nil {
@@ -43,7 +43,28 @@ func RunCommitWizard() {
 
 	var msg string
 
-	if commitType == "ai" {
+	if commitType == "custom" {
+		// Custom commit option - direct message entry with optional detailed body
+		customMsg, err := ui.PromptInput("Enter short commit message / title:", "")
+		if err != nil || customMsg == "" {
+			if customMsg == "" {
+				fmt.Println(ui.Error.Render("Commit message is required."))
+				ui.PressEnterToContinue()
+			}
+			return
+		}
+		
+		body, err := ui.PromptInput("Enter detailed long description (optional):", "")
+		if err != nil {
+			return
+		}
+
+		if body != "" {
+			msg = fmt.Sprintf("%s\n\n%s", customMsg, body)
+		} else {
+			msg = customMsg
+		}
+	} else if commitType == "ai" {
 		diffRes := RunGitCommand([]string{"diff", "--cached"})
 		if !diffRes.Success || diffRes.Stdout == "" {
 			diffRes = RunGitCommand([]string{"diff", "HEAD"})
@@ -67,17 +88,6 @@ func RunCommitWizard() {
 			return
 		}
 		msg = aiMsg
-	} else if commitType == "custom" {
-		// Custom commit option - direct message entry
-		customMsg, err := ui.PromptInput("Enter commit message:", "")
-		if err != nil || customMsg == "" {
-			if customMsg == "" {
-				fmt.Println(ui.Error.Render("Commit message is required."))
-				ui.PressEnterToContinue()
-			}
-			return
-		}
-		msg = customMsg
 	} else {
 		// 2. Scope
 		scope, err := ui.PromptInput("Enter scope (optional):", "")
